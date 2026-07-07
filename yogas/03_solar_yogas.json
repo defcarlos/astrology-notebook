@@ -1,0 +1,493 @@
+{
+    "metadata": {
+        "source": "Core Yogas: Yokes to the Fruits of Karma by Ernst Wilhelm",
+        "description": "JSON schema for Solar Yogas (combinations formed relative to the Sun). Revised to include Misra (Mixed) variations and mutual exclusivity for pure Subha/Papa yogas.",
+        "version": "1.1",
+        "engine_notes": "Added NOT_EXISTS constraints to pure Subha/Papa yogas to prevent double-triggering. Added Misra (Mixed) yogas for when both benefics and malefics participate."
+    },
+    "yogas": [
+        {
+            "id": "yoga_vesi_generic",
+            "name": "Generic Vesi Yoga",
+            "category": "Solar",
+            "description": "Planets other than the Moon, Rahu, and Ketu in the 2nd house from the Sun.",
+            "results": "The native will be truthful, generally happy, and courageous. They will possess a good memory, even sight, and enjoy a comfortable level of wealth.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "target": "AnyPlanet",
+                        "exclude": [
+                            "Moon",
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_vasi_generic",
+            "name": "Generic Vasi Yoga",
+            "category": "Solar",
+            "description": "Planets other than the Moon, Rahu, and Ketu in the 12th house from the Sun.",
+            "results": "The native will be famous, sweet-speaking, and learned. They tend to be strong, well-regarded by authority figures, and charitably inclined.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "target": "AnyPlanet",
+                        "exclude": [
+                            "Moon",
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 12
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_ubhayachari_generic",
+            "name": "Generic Ubhayachari Yoga",
+            "category": "Solar",
+            "description": "Planets other than the Moon, Rahu, and Ketu in both the 2nd and 12th houses from the Sun.",
+            "results": "The native will be eloquent, famous, and possess a well-proportioned body. They will be patient, cheerful, and capable of taking on significant responsibilities while enjoying great wealth.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Moon",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Moon",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_subhavesi",
+            "name": "Subhavesi Yoga",
+            "category": "Solar Subha",
+            "description": "Only Benefic planets (other than the Moon) in the 2nd house from the Sun.",
+            "results": "The native will be handsome, happy, virtuous, and courageous. They often enjoy high status or a king-like lifestyle.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 2
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "NOT_EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_papavesi",
+            "name": "Papavesi Yoga",
+            "category": "Solar Papa",
+            "description": "Only Malefic planets (other than Rahu/Ketu) in the 2nd house from the Sun.",
+            "results": "The native may be harsh in speech, face defamation, or suffer loss of wealth. They are prone to associating with wicked people.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 2
+                    },
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "NOT_EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_misravesi",
+            "name": "Misra Vesi Yoga",
+            "category": "Solar Misra",
+            "description": "Both Benefic and Malefic planets occupying the 2nd house from the Sun.",
+            "results": "The native will experience a mix of fortunes, acquiring wealth through both righteous and questionable means, and displaying both virtuous and harsh traits.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 2
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_subhavasi",
+            "name": "Subhavasi Yoga",
+            "category": "Solar Subha",
+            "description": "Only Benefic planets (other than the Moon) in the 12th house from the Sun.",
+            "results": "The native will be pious, knowledgeable, and beloved by authorities. They enjoy a prosperous and spiritually inclined life.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 12
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "NOT_EQUALS",
+                        "value": 12
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_papavasi",
+            "name": "Papavasi Yoga",
+            "category": "Solar Papa",
+            "description": "Only Malefic planets (other than Rahu/Ketu) in the 12th house from the Sun.",
+            "results": "The native may have a cruel disposition, face hidden enemies, and suffer from poor health or financial losses.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 12
+                    },
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "NOT_EQUALS",
+                        "value": 12
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_misravasi",
+            "name": "Misra Vasi Yoga",
+            "category": "Solar Misra",
+            "description": "Both Benefic and Malefic planets occupying the 12th house from the Sun.",
+            "results": "The native will have fluctuations in status, sometimes engaging in charitable acts and other times facing sudden expenses or hidden opposition.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 12
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 12
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_subhobhayachari",
+            "name": "Subhobhayachari Yoga",
+            "category": "Solar Subha",
+            "description": "Only Benefic planets (other than the Moon) in both the 2nd and 12th houses from the Sun.",
+            "results": "The native will be a well-spoken, charismatic leader who enjoys immense fame, wealth, and the protection of powerful allies.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "NOT_IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Moon",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Moon",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_papobhayachari",
+            "name": "Papobhayachari Yoga",
+            "category": "Solar Papa",
+            "description": "Only Malefic planets (other than Rahu/Ketu) in both the 2nd and 12th houses from the Sun.",
+            "results": "The native may suffer from continuous mental anxiety, frequent obstacles, health issues, and a lack of support from others.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "NOT_IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Moon",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Moon",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_misrobhayachari",
+            "name": "Misra Ubhayachari Yoga",
+            "category": "Solar Misra",
+            "description": "A mix of Benefic and Malefic planets across the 2nd and 12th houses from the Sun.",
+            "results": "The native will face extreme highs and lows in life. They can achieve great status but will have to constantly fight off opposition and manage heavy burdens.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Moon",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Moon",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}

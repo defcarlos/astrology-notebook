@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Astrology Report - {{subject_name}}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0c0d21;
+            --card-bg: #161730;
+            --border-color: #2e305c;
+            --text-color: #f1f1f5;
+            --text-muted: #a5a7cc;
+            --gold: #f3c63f;
+            --purple: #9d4edd;
+            --teal: #00f2fe;
+            --green: #2ecc71;
+            --red: #e74c3c;
+            --focus-outline: #00f2fe;
+        }
+
+        /* Basic Reset & Accessibility */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+
+        /* Focus styles for keyboard accessibility */
+        *:focus-visible {
+            outline: 3px solid var(--focus-outline);
+            outline-offset: 2px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Styling */
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 2.2rem;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 10px rgba(243, 198, 63, 0.2);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Metadata Banner */
+        .meta-banner {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .meta-banner p {
+            margin: 0;
+        }
+
+        .meta-separator {
+            color: var(--border-color);
+            margin: 0 0.75rem;
+            user-select: none;
+        }
+
+        /* Accessible Tab Controls */
+        .tabs-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            list-style: none;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-color);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn[aria-selected="true"] {
+            color: var(--gold);
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-bottom-color: var(--card-bg);
+        }
+
+        .tab-btn[aria-selected="true"]::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--gold);
+        }
+
+        .tab-content {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Chart Toggle Button */
+        .toggle-btn-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .toggle-btn {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--gold);
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 0.6rem 1.75rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-btn:hover {
+            background-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        /* Chart Display Container */
+        .chart-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            margin-bottom: 2.5rem;
+        }
+
+        .chart-box {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        /* Show/Hide chart displays based on class */
+        .chart-container.show-north #chart-north-box {
+            display: block;
+        }
+
+        .chart-container.show-south #chart-south-box {
+            display: block;
+        }
+
+        /* SVG Style Tweaks */
+        svg {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        /* Tables & Grids */
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 1.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            font-family: 'Cinzel', serif;
+            color: var(--gold);
+            font-weight: 600;
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.01);
+        }
+
+        /* Yoga Cards */
+        .yoga-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .yoga-card {
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            position: relative;
+            transition: transform 0.2s ease;
+        }
+
+        .yoga-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--purple);
+        }
+
+        .yoga-card.active {
+            border-left: 4px solid var(--green);
+        }
+
+        .yoga-card.inactive {
+            border-left: 4px solid var(--border-color);
+            opacity: 0.7;
+        }
+
+        .yoga-grid.hide-inactive .yoga-card.inactive {
+            display: none;
+        }
+
+        .toggle-filter-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-btn {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.5rem 1.25rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--gold);
+            color: var(--text-color);
+        }
+
+        .filter-btn.active {
+            background-color: rgba(243, 198, 63, 0.1);
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .yoga-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+
+        .yoga-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        .yoga-status.active {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: var(--green);
+        }
+
+        .yoga-status.inactive {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        /* Timeline for Dashas */
+        .timeline {
+            position: relative;
+            margin: 2rem 0;
+            padding-left: 2rem;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.45rem;
+            top: 0.25rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--border-color);
+            border: 2px solid var(--bg-color);
+        }
+
+        .timeline-item.active::before {
+            background-color: var(--gold);
+            box-shadow: 0 0 8px var(--gold);
+        }
+
+        .timeline-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            color: var(--gold);
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-dates {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        /* Skip links for screen readers */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--gold);
+            color: var(--bg-color);
+            padding: 8px;
+            z-index: 100;
+            transition: top 0.2s;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+    </style>
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <div class="container">
+        <header>
+            <h1>Cosmic Astrology Report</h1>
+            <p class="subtitle">{{subject_name}}</p>
+        </header>
+
+        <main id="main-content">
+            <!-- Compact Metadata Banner -->
+            <section aria-label="Profile Details" class="meta-banner">
+                <p>
+                    <strong>Birth Data:</strong> {{birth_date}} at {{birth_time}} ({{birth_tz}})
+                    <span class="meta-separator">|</span>
+                    <strong>Coordinates:</strong> {{birth_lat}}° N, {{birth_lon}}° W
+                    <span class="meta-separator">|</span>
+                    <strong>System:</strong> {{house_system}} ({{ayanamsa}})
+                </p>
+            </section>
+
+            <!-- Chart Toggle Button Container -->
+            <div class="toggle-btn-container">
+                <button id="chart-toggle-btn" class="toggle-btn" aria-live="polite" aria-label="Switch between North Indian and South Indian Vedic chart formats">
+                    Switch to South Indian Chart
+                </button>
+            </div>
+
+            <!-- Chart Display Container -->
+            <section id="chart-container" aria-label="Astrological Vedic Charts" class="chart-container show-north">
+                <!-- North Indian Box -->
+                <div id="chart-north-box" class="chart-box">
+                    {{north_chart_svg}}
+                </div>
+                <!-- South Indian Box -->
+                <div id="chart-south-box" class="chart-box">
+                    {{south_chart_svg}}
+                </div>
+            </section>
+
+            <!-- Interactive Tabs -->
+            <nav aria-label="Report Section Navigation">
+                <ul class="tabs-list" role="tablist">
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-planets" id="btn-planets">Planets</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-friendships" id="btn-friendships">Planetary Friendships</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-yogas" id="btn-yogas">Vedic Yogas</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-dashas" id="btn-dashas">Vimshottari Dasha</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-ashtakavarga" id="btn-ashtakavarga">Ashtakavarga</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-transits" id="btn-transits">Gochara Transits</button></li>
+                </ul>
+            </nav>
+
+            <!-- Tab Contents -->
+            <div class="tab-content-container">
+                <!-- Tab: Planets -->
+                <div class="tab-content active" id="tab-planets" role="tabpanel" aria-labelledby="btn-planets" tabindex="0">
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Planetary Placements</h2>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Planet</th>
+                                    <th scope="col">Sign (Tropical)</th>
+                                    <th scope="col">House</th>
+                                    <th scope="col">Degree</th>
+                                    <th scope="col">Dignity</th>
+                                    <th scope="col">Shadbala Total</th>
+                                    <th scope="col">Nakshatra (Sidereal)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{planet_rows}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Planetary Friendships -->
+                <div class="tab-content" id="tab-friendships" role="tabpanel" aria-labelledby="btn-friendships" tabindex="0" hidden>
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Compound Friendships (Panchadha Maitri)</h2>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Planet</th>
+                                    <th scope="col">Sun</th>
+                                    <th scope="col">Moon</th>
+                                    <th scope="col">Mars</th>
+                                    <th scope="col">Mercury</th>
+                                    <th scope="col">Jupiter</th>
+                                    <th scope="col">Venus</th>
+                                    <th scope="col">Saturn</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{friendships_grid}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Yogas -->
+                <div class="tab-content" id="tab-yogas" role="tabpanel" aria-labelledby="btn-yogas" tabindex="0" hidden>
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Active Vedic Yogas</h2>
+                    <div class="toggle-filter-container">
+                        <button type="button" class="filter-btn active" id="yoga-filter-btn" aria-pressed="true">Show Active Yogas Only</button>
+                    </div>
+                    <div class="yoga-grid hide-inactive" id="yogas-grid-container">
+                        {{yogas_cards}}
+                    </div>
+                </div>
+
+                <!-- Tab: Dashas -->
+                <div class="tab-content" id="tab-dashas" role="tabpanel" aria-labelledby="btn-dashas" tabindex="0" hidden>
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Vimshottari Dasha Cycles</h2>
+                    <div class="timeline">
+                        {{dashas_timeline}}
+                    </div>
+                </div>
+
+                <!-- Tab: Ashtakavarga -->
+                <div class="tab-content" id="tab-ashtakavarga" role="tabpanel" aria-labelledby="btn-ashtakavarga" tabindex="0" hidden>
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Ashtakavarga Bindu Distributions</h2>
+                    
+                    <h3 class="yoga-title" style="font-size: 1.25rem; margin: 1.5rem 0 1rem 0;">Sarvashtakavarga (SAV) Points</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Sign</th>
+                                    <th scope="col">SAV Points</th>
+                                    <th scope="col">Strength Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{ashtakavarga_sav}}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3 class="yoga-title" style="font-size: 1.25rem; margin: 2rem 0 1rem 0;">Bhinna Ashtakavarga (BAV) Points</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Sign</th>
+                                    <th scope="col">Sun</th>
+                                    <th scope="col">Moon</th>
+                                    <th scope="col">Mars</th>
+                                    <th scope="col">Mercury</th>
+                                    <th scope="col">Jupiter</th>
+                                    <th scope="col">Venus</th>
+                                    <th scope="col">Saturn</th>
+                                    <th scope="col">Total (SAV)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{ashtakavarga_bav}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Transits -->
+                <div class="tab-content" id="tab-transits" role="tabpanel" aria-labelledby="btn-transits" tabindex="0" hidden>
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Gochara Transits (Relative to Moon)</h2>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Planet</th>
+                                    <th scope="col">Transit Sign</th>
+                                    <th scope="col">House from Moon</th>
+                                    <th scope="col">Transit Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{transits_rows}}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Tabs & Toggle Script -->
+    <script>
+        // Tabs interaction
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.setAttribute('aria-selected', 'false');
+                    t.tabIndex = -1;
+                });
+                contents.forEach(c => {
+                    c.classList.remove('active');
+                    c.hidden = true;
+                });
+
+                tab.setAttribute('aria-selected', 'true');
+                tab.tabIndex = 0;
+                const activeContent = document.getElementById(tab.getAttribute('aria-controls'));
+                activeContent.classList.add('active');
+                activeContent.hidden = false;
+            });
+
+            tab.addEventListener('keydown', (e) => {
+                const tabsArray = Array.from(tabs);
+                const index = tabsArray.indexOf(tab);
+
+                if (e.key === 'ArrowRight') {
+                    const nextIndex = (index + 1) % tabsArray.length;
+                    tabsArray[nextIndex].focus();
+                    tabsArray[nextIndex].click();
+                } else if (e.key === 'ArrowLeft') {
+                    const prevIndex = (index - 1 + tabsArray.length) % tabsArray.length;
+                    tabsArray[prevIndex].focus();
+                    tabsArray[prevIndex].click();
+                }
+            });
+        });
+
+        // Single button toggle interaction
+        const toggleBtn = document.getElementById('chart-toggle-btn');
+        const chartContainer = document.getElementById('chart-container');
+
+        toggleBtn.addEventListener('click', () => {
+            if (chartContainer.classList.contains('show-north')) {
+                chartContainer.classList.remove('show-north');
+                chartContainer.classList.add('show-south');
+                toggleBtn.textContent = 'Switch to North Indian Chart';
+                toggleBtn.setAttribute('aria-label', 'Switch to North Indian style chart');
+            } else {
+                chartContainer.classList.remove('show-south');
+                chartContainer.classList.add('show-north');
+                toggleBtn.textContent = 'Switch to South Indian Chart';
+                toggleBtn.setAttribute('aria-label', 'Switch to South Indian style chart');
+            }
+        });
+
+        // Yoga list filter toggle interaction
+        const yogaFilterBtn = document.getElementById('yoga-filter-btn');
+        const yogasGridContainer = document.getElementById('yogas-grid-container');
+
+        if (yogaFilterBtn && yogasGridContainer) {
+            yogaFilterBtn.addEventListener('click', () => {
+                const isFilteringActive = yogasGridContainer.classList.contains('hide-inactive');
+                if (isFilteringActive) {
+                    yogasGridContainer.classList.remove('hide-inactive');
+                    yogaFilterBtn.classList.remove('active');
+                    yogaFilterBtn.setAttribute('aria-pressed', 'false');
+                    yogaFilterBtn.textContent = 'Show All Checked Yogas';
+                } else {
+                    yogasGridContainer.classList.add('hide-inactive');
+                    yogaFilterBtn.classList.add('active');
+                    yogaFilterBtn.setAttribute('aria-pressed', 'true');
+                    yogaFilterBtn.textContent = 'Show Active Yogas Only';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,404 @@
+{
+    "metadata": {
+        "source": "Core Yogas: Yokes to the Fruits of Karma by Ernst Wilhelm & 300 Important Combinations by B.V. Raman",
+        "description": "Comprehensive JSON schema for the Nabhasa Yogas. Revised to fix Vapi Kendra logic, apply Sankhya hierarchy, and strictly define Dala targets.",
+        "version": "1.1",
+        "engine_notes": "Added priority and overruled_by_categories for engine fallback logic."
+    },
+    "yogas": [
+        {
+            "id": "yoga_rajju",
+            "name": "Rajju Yoga",
+            "category": "Nabhasa Asraya",
+            "description": "All 7 visible planets located in moveable (Chara) signs.",
+            "results": "The native will be fond of travel, wandering, and may frequently live in foreign lands. Highly adaptable but may lack stability, sometimes exhibiting a cruel streak.",
+            "rules": {
+                "logical_operator": "ALL",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "sign_quality",
+                        "operator": "EQUALS",
+                        "value": "Moveable"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_musala",
+            "name": "Musala Yoga",
+            "category": "Nabhasa Asraya",
+            "description": "All 7 visible planets located in fixed (Sthira) signs.",
+            "results": "The native will be endowed with honor, wisdom, and wealth. Highly reliable, fixed in purpose, proud, and often engages in steadfast, long-term enterprises.",
+            "rules": {
+                "logical_operator": "ALL",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "sign_quality",
+                        "operator": "EQUALS",
+                        "value": "Fixed"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_nala",
+            "name": "Nala Yoga",
+            "category": "Nabhasa Asraya",
+            "description": "All 7 visible planets located in dual (Dwisvabhava) signs.",
+            "results": "The native will be very clever and capable of gathering wealth, though their fortune may fluctuate. They often have an uneven physique and a dual or highly flexible nature.",
+            "rules": {
+                "logical_operator": "ALL",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "sign_quality",
+                        "operator": "EQUALS",
+                        "value": "Dual"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_mala",
+            "name": "Mala (Srak) Yoga",
+            "category": "Nabhasa Dala",
+            "description": "All benefics occupying Kendras (angles), with malefics not in Kendras.",
+            "results": "The native will enjoy uninterrupted happiness, conveyances, and good meals. They will be charitable, fond of elegant dress, and attractive to others.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllBeneficPlanets",
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "AllMaleficPlanets",
+                        "property": "relative_house_to_lagna",
+                        "operator": "NOT_IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_sarpa",
+            "name": "Sarpa Yoga",
+            "category": "Nabhasa Dala",
+            "description": "All malefics occupying Kendras (angles), with benefics not in Kendras.",
+            "results": "The native may face a harsh, painful life filled with struggles and poverty. They can be cruel, unhappy, and dependent on others.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllMaleficPlanets",
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "AllBeneficPlanets",
+                        "property": "relative_house_to_lagna",
+                        "operator": "NOT_IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_gola",
+            "name": "Gola Yoga",
+            "category": "Nabhasa Sankhya",
+            "priority": "Low",
+            "overruled_by_categories": [
+                "Nabhasa Asraya",
+                "Nabhasa Dala",
+                "Nabhasa Akriti"
+            ],
+            "description": "All 7 visible planets restricted to only 1 sign.",
+            "results": "The native may be destitute, illiterate, and face significant sorrow. They are often misunderstood or rejected by society.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "sign",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 1
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_yuga",
+            "name": "Yuga Yoga",
+            "category": "Nabhasa Sankhya",
+            "priority": "Low",
+            "overruled_by_categories": [
+                "Nabhasa Asraya",
+                "Nabhasa Dala",
+                "Nabhasa Akriti"
+            ],
+            "description": "All 7 visible planets restricted to exactly 2 signs.",
+            "results": "The native is often poor, devoid of wealth or religious faith. They may struggle with societal norms and remain unrecognized.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "sign",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_sula",
+            "name": "Sula Yoga",
+            "category": "Nabhasa Sankhya",
+            "priority": "Low",
+            "overruled_by_categories": [
+                "Nabhasa Asraya",
+                "Nabhasa Dala",
+                "Nabhasa Akriti"
+            ],
+            "description": "All 7 visible planets restricted to exactly 3 signs.",
+            "results": "The native can be sharp, aggressive, or cruel. They often face poverty and rejection, possessing a piercing or confrontational nature.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "sign",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 3
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_kedara",
+            "name": "Kedara Yoga",
+            "category": "Nabhasa Sankhya",
+            "priority": "Low",
+            "overruled_by_categories": [
+                "Nabhasa Asraya",
+                "Nabhasa Dala",
+                "Nabhasa Akriti"
+            ],
+            "description": "All 7 visible planets occupy exactly 4 signs.",
+            "results": "The native will be helpful to many, generating wealth through agriculture or real estate. They lead a comfortable, productive life.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "sign",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 4
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_pasa",
+            "name": "Pasa Yoga",
+            "category": "Nabhasa Sankhya",
+            "priority": "Low",
+            "overruled_by_categories": [
+                "Nabhasa Asraya",
+                "Nabhasa Dala",
+                "Nabhasa Akriti"
+            ],
+            "description": "All 7 visible planets occupy exactly 5 signs.",
+            "results": "The native will be wealthy, highly capable, and talkative. They are adept at earning money and usually possess a large family or wide network.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "sign",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 5
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_dama",
+            "name": "Dama Yoga",
+            "category": "Nabhasa Sankhya",
+            "priority": "Low",
+            "overruled_by_categories": [
+                "Nabhasa Asraya",
+                "Nabhasa Dala",
+                "Nabhasa Akriti"
+            ],
+            "description": "All 7 visible planets occupy exactly 6 signs.",
+            "results": "The native will be famous, wealthy, and highly generous. They are recognized by authority figures and enjoy a continuous string of successes.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "sign",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 6
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_veena",
+            "name": "Veena (Vallaki) Yoga",
+            "category": "Nabhasa Sankhya",
+            "priority": "Low",
+            "overruled_by_categories": [
+                "Nabhasa Asraya",
+                "Nabhasa Dala",
+                "Nabhasa Akriti"
+            ],
+            "description": "All 7 visible planets occupy exactly 7 signs (one in each).",
+            "results": "The native will be deeply fond of music, dance, and the arts. They are highly skilled, wealthy, and naturally take on leadership roles.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "sign",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 7
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_kamala",
+            "name": "Kamala Yoga",
+            "category": "Nabhasa Akriti",
+            "description": "The 7 visible planets distributed across all 4 Kendras (Angles - 1, 4, 7, 10).",
+            "results": "The native will be highly prosperous, virtuous, famous, and long-lived. They will perform noble deeds, command great respect and authority, and be honored by rulers or governmental authorities.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_lagna",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 4
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_vapi",
+            "name": "Vapi Yoga",
+            "category": "Nabhasa Akriti",
+            "description": "All 7 visible planets occupying Panaphara (2, 5, 8, 11) or Apoklima (3, 6, 9, 12) houses, with Kendras totally empty.",
+            "results": "The native will accumulate wealth over time, enjoy a long and secure life, have stable financial assets, and be comfortable with moderate, steady gains.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_lagna",
+                        "operator": "NOT_IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}

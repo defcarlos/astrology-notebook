@@ -1,0 +1,378 @@
+{
+    "metadata": {
+        "source": "Core Yogas: Yokes to the Fruits of Karma by Ernst Wilhelm",
+        "description": "A structured JSON schema mapping classic Vedic planetary combinations to logical conditions for algorithmic calculation. Revised to include the traditional astrological results and meanings, and patched for engine parsing logic (Kemadruma, Durudhara, Ubhayachari).",
+        "version": "1.3"
+    },
+    "yogas": [
+        {
+            "id": "yoga_ruchaka",
+            "name": "Ruchaka Yoga",
+            "category": "Pancha Mahapurusha",
+            "description": "Mars in an angle (Kendra) and in its own sign, mulatrikona, or exaltation.",
+            "results": "The native will be bold, adventurous, wealthy, and victorious over enemies. They often rise to commanding positions, possessing strong leadership and an energetic, athletic physique.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Mars",
+                        "property": "house",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "Mars",
+                        "property": "dignity",
+                        "operator": "IN",
+                        "value": [
+                            "Own",
+                            "Mulatrikona",
+                            "Exaltation"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_bhadra",
+            "name": "Bhadra Yoga",
+            "category": "Pancha Mahapurusha",
+            "description": "Mercury in an angle (Kendra) and in its own sign, mulatrikona, or exaltation.",
+            "results": "The native will be highly intelligent, eloquent, and learned. They will enjoy a long life, be skilled in business or communication, and be praised by scholars.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Mercury",
+                        "property": "house",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "Mercury",
+                        "property": "dignity",
+                        "operator": "IN",
+                        "value": [
+                            "Own",
+                            "Mulatrikona",
+                            "Exaltation"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_hamsa",
+            "name": "Hamsa Yoga",
+            "category": "Pancha Mahapurusha",
+            "description": "Jupiter in an angle (Kendra) and in its own sign, mulatrikona, or exaltation.",
+            "results": "The native will be deeply righteous, pure in mind, and spiritual. They will command respect from good people, possess a beautiful physical appearance, and enjoy great fortune.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Jupiter",
+                        "property": "house",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "Jupiter",
+                        "property": "dignity",
+                        "operator": "IN",
+                        "value": [
+                            "Own",
+                            "Mulatrikona",
+                            "Exaltation"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_malavya",
+            "name": "Malavya Yoga",
+            "category": "Pancha Mahapurusha",
+            "description": "Venus in an angle (Kendra) and in its own sign, mulatrikona, or exaltation.",
+            "results": "The native will enjoy a luxurious life, endowed with fine vehicles, wealth, and artistic talents. They will have a happy family life, a graceful appearance, and a strong, resolute mind.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Venus",
+                        "property": "house",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "Venus",
+                        "property": "dignity",
+                        "operator": "IN",
+                        "value": [
+                            "Own",
+                            "Mulatrikona",
+                            "Exaltation"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_sasa",
+            "name": "Sasa Yoga",
+            "category": "Pancha Mahapurusha",
+            "description": "Saturn in an angle (Kendra) and in its own sign, mulatrikona, or exaltation.",
+            "results": "The native will have authority over many, often acting as a leader or head of a region. They can be strict or formidable, amassing wealth and power, sometimes through unconventional or hard-won means.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Saturn",
+                        "property": "house",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "Saturn",
+                        "property": "dignity",
+                        "operator": "IN",
+                        "value": [
+                            "Own",
+                            "Mulatrikona",
+                            "Exaltation"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_vesi",
+            "name": "Vesi Yoga",
+            "category": "Solar Yogas",
+            "description": "Planets other than the Moon, Rahu, and Ketu in the 2nd house from the Sun.",
+            "results": "The native will be truthful, generally happy, and courageous. They will possess a good memory, even sight, and enjoy a comfortable level of wealth.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "target": "AnyPlanet",
+                        "exclude": [
+                            "Moon",
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_vasi",
+            "name": "Vasi Yoga",
+            "category": "Solar Yogas",
+            "description": "Planets other than the Moon, Rahu, and Ketu in the 12th house from the Sun.",
+            "results": "The native will be famous, sweet-speaking, and learned. They tend to be strong, well-regarded by authority figures, and charitably inclined.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "target": "AnyPlanet",
+                        "exclude": [
+                            "Moon",
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_sun",
+                        "operator": "EQUALS",
+                        "value": 12
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_ubhayachari",
+            "name": "Ubhayachari Yoga",
+            "category": "Solar Yogas",
+            "description": "Planets other than the Moon, Rahu, and Ketu in both the 2nd and 12th houses from the Sun.",
+            "results": "The native will be eloquent, famous, and possess a well-proportioned body. They will be patient, cheerful, and capable of taking on significant responsibilities while enjoying great wealth.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Moon",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Moon",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_sunapha",
+            "name": "Sunapha Yoga",
+            "category": "Lunar Yogas",
+            "description": "Planets other than the Sun, Rahu, and Ketu in the 2nd house from the Moon.",
+            "results": "The native will be intelligent, wealthy, and enjoy self-acquired property. They will achieve a high status, often equivalent to a king or ruler, and have a good reputation.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "target": "AnyPlanet",
+                        "exclude": [
+                            "Sun",
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_anapha",
+            "name": "Anapha Yoga",
+            "category": "Lunar Yogas",
+            "description": "Planets other than the Sun, Rahu, and Ketu in the 12th house from the Moon.",
+            "results": "The native will be strong, healthy, and of good character. They are often generous, beautiful, enjoy physical comforts and pleasures, and maintain a polite demeanor.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "target": "AnyPlanet",
+                        "exclude": [
+                            "Sun",
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 12
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_durudhara",
+            "name": "Durudhara Yoga",
+            "category": "Lunar Yogas",
+            "description": "Planets other than the Sun, Rahu, and Ketu in both the 2nd and 12th houses from the Moon.",
+            "results": "The native will be blessed with bountiful wealth, loyal followers, and excellent conveyances. They will be charitable, comfortable, and enjoy a high quality of life.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Sun",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Sun",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_amala",
+            "name": "Amala Yoga",
+            "category": "Lagna & Lunar Yogas",
+            "description": "Unblemished benefic (Jupiter, Venus, or well-associated Mercury) in the 10th house from the Lagna or Moon.",
+            "results": "The native will possess a spotless, unblemished character. They will be highly philanthropic, enjoy a prosperous life, and leave behind a lasting, positive legacy.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "target": "BeneficPlanet",
+                        "property": "relative_house_to_lagna_or_moon",
+                        "operator": "EQUALS",
+                        "value": 10
+                    },
+                    {
+                        "target": "BeneficPlanet",
+                        "property": "is_unblemished",
+                        "operator": "EQUALS",
+                        "value": true
+                    }
+                ]
+            }
+        }
+    ]
+}

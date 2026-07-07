@@ -1,0 +1,681 @@
+{
+    "metadata": {
+        "source": "Core Yogas: Yokes to the Fruits of Karma by Ernst Wilhelm & 300 Important Combinations by B.V. Raman",
+        "description": "JSON schema for Lunar Yogas. Revised to patch Chandradhi/Vasumati count logic and Sakata mutual exclusivity.",
+        "version": "1.1",
+        "engine_notes": "Added UNIQUE_COUNT_EQUALS operator for Chandradhi and Vasumati. Applied correct Kendra cancellation for Sakata."
+    },
+    "yogas": [
+        {
+            "id": "yoga_sunapha_generic",
+            "name": "Generic Sunapha Yoga",
+            "category": "Lunar",
+            "description": "Planets other than the Sun, Rahu, and Ketu in the 2nd house from the Moon.",
+            "results": "The native will be intelligent, wealthy, and enjoy self-acquired property. They will achieve a high status, often equivalent to a king or ruler, and have a good reputation.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "target": "AnyPlanet",
+                        "exclude": [
+                            "Sun",
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_anapha_generic",
+            "name": "Generic Anapha Yoga",
+            "category": "Lunar",
+            "description": "Planets other than the Sun, Rahu, and Ketu in the 12th house from the Moon.",
+            "results": "The native will be strong, healthy, and of good character. They are often generous, beautiful, enjoy physical comforts and pleasures, and maintain a polite demeanor.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "target": "AnyPlanet",
+                        "exclude": [
+                            "Sun",
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 12
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_durudhara_generic",
+            "name": "Generic Durudhara Yoga",
+            "category": "Lunar",
+            "description": "Planets other than the Sun, Rahu, and Ketu in both the 2nd and 12th houses from the Moon.",
+            "results": "The native will be blessed with bountiful wealth, loyal followers, and excellent conveyances. They will be charitable, comfortable, and enjoy a high quality of life.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Sun",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Sun",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_subhasunapha",
+            "name": "Subhasunapha Yoga",
+            "category": "Lunar Subha",
+            "description": "Only Benefic planets (other than the Sun) in the 2nd house from the Moon.",
+            "results": "The native will be endowed with good qualities, intelligence, and a pure heart. They easily acquire wealth and are well-respected.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Sun"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 2
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "NOT_EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_papasunapha",
+            "name": "Papasunapha Yoga",
+            "category": "Lunar Papa",
+            "description": "Only Malefic planets (other than Rahu/Ketu) in the 2nd house from the Moon.",
+            "results": "The native may struggle to accumulate wealth, speak harshly, or use questionable methods to gain success. Prone to selfishness.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 2
+                    },
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Sun"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "NOT_EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_misrasunapha",
+            "name": "Misra Sunapha Yoga",
+            "category": "Lunar Misra",
+            "description": "Both Benefic and Malefic planets occupying the 2nd house from the Moon.",
+            "results": "The native will have average wealth, earning through mixed means. They possess a mix of good and harsh qualities.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Sun"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 2
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 2
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_subhaanapha",
+            "name": "Subhaanapha Yoga",
+            "category": "Lunar Subha",
+            "description": "Only Benefic planets (other than the Sun) in the 12th house from the Moon.",
+            "results": "The native will be highly charitable, spiritual, and enjoy a comfortable, peaceful life. They are generally free from disease.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Sun"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 12
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "NOT_EQUALS",
+                        "value": 12
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_papanapha",
+            "name": "Papanapha Yoga",
+            "category": "Lunar Papa",
+            "description": "Only Malefic planets (other than Rahu/Ketu) in the 12th house from the Moon.",
+            "results": "The native may suffer from poor health, loss of wealth, and a tendency to spend impulsively. They may lack peace of mind.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 12
+                    },
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Sun"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "NOT_EQUALS",
+                        "value": 12
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_misraanapha",
+            "name": "Misra Anapha Yoga",
+            "category": "Lunar Misra",
+            "description": "Both Benefic and Malefic planets occupying the 12th house from the Moon.",
+            "results": "The native will have fluctuations in their peace and comfort, experiencing periods of both charity and unwanted expenses.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Sun"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 12
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "EQUALS",
+                        "value": 12
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_subhadurudhara",
+            "name": "Subhadurudhara Yoga",
+            "category": "Lunar Subha",
+            "description": "Only Benefic planets (other than the Sun) in both the 2nd and 12th houses from the Moon.",
+            "results": "The native will be highly fortunate, virtuous, and possess a pure mind. They will be wealthy, charitable, and enjoy a long, peaceful life.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Sun"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "NOT_IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Sun",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Sun",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_papadurudhara",
+            "name": "Papadurudhara Yoga",
+            "category": "Lunar Papa",
+            "description": "Only Malefic planets (other than Rahu/Ketu) in both the 2nd and 12th houses from the Moon.",
+            "results": "The native may face continuous mental agony, poverty, and isolation. They are prone to wicked deeds and suffer from fear or imprisonment.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Sun"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "NOT_IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Sun",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Sun",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_misradurudhara",
+            "name": "Misra Durudhara Yoga",
+            "category": "Lunar Misra",
+            "description": "A mix of Benefic and Malefic planets across the 2nd and 12th houses from the Moon.",
+            "results": "The native will face extreme highs and lows, balancing wealth with heavy expenses, and periods of peace followed by mental stress.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AnyBeneficPlanet",
+                        "exclude": [
+                            "Sun"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "target": "AnyMaleficPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "IN",
+                        "value": [
+                            2,
+                            12
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Sun",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyPlanet",
+                                "exclude": [
+                                    "Sun",
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_kemadruma",
+            "name": "Kemadruma Yoga",
+            "category": "Lunar Special",
+            "description": "Strict absence of planets (other than Sun, nodes) in the 2nd and 12th houses from the Moon, and no planets in Kendras from Lagna or Moon.",
+            "results": "The native may face significant struggles, poverty, and sorrow. They often feel isolated, deprived of support from family and friends, and may have to rely on menial work unless the yoga is cancelled.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Sun",
+                            "Rahu",
+                            "Ketu",
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "NOT_IN",
+                        "value": [
+                            1,
+                            2,
+                            4,
+                            7,
+                            10,
+                            12
+                        ]
+                    },
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Sun",
+                            "Rahu",
+                            "Ketu",
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_lagna",
+                        "operator": "NOT_IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_gajakesari",
+            "name": "Gajakesari Yoga",
+            "category": "Lunar Special",
+            "description": "Jupiter in a Kendra (1st, 4th, 7th, or 10th house) from the Moon.",
+            "results": "The native will be highly capable, brilliant, and enjoy lasting fame. They overpower their enemies (like a lion over an elephant) and are often responsible for building or leading institutions.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Jupiter",
+                        "property": "relative_house_to_moon",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_chandradhi",
+            "name": "Chandradhi (Adhi) Yoga",
+            "category": "Lunar Special",
+            "description": "Benefic planets situated in the 6th, 7th, and 8th houses from the Moon.",
+            "results": "The native will achieve high status, leadership, and a long, healthy life. They will successfully overcome all enemies and obstacles.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllBeneficPlanets",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "IN",
+                        "value": [
+                            6,
+                            7,
+                            8
+                        ]
+                    },
+                    {
+                        "target": "AllBeneficPlanets",
+                        "exclude": [
+                            "Moon"
+                        ],
+                        "property": "relative_house_to_moon",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 3
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_vasumati",
+            "name": "Vasumati Yoga",
+            "category": "Lunar Special",
+            "description": "All benefic planets occupying the Upachaya houses (3rd, 6th, 10th, 11th) from the Lagna or the Moon.",
+            "results": "The native will become exceedingly wealthy, continuously accumulating resources and maintaining their prosperity throughout life.",
+            "rules": {
+                "logical_operator": "OR",
+                "conditions": [
+                    {
+                        "logical_operator": "AND",
+                        "conditions": [
+                            {
+                                "target": "AllBeneficPlanets",
+                                "exclude": [
+                                    "Moon"
+                                ],
+                                "property": "relative_house_to_moon",
+                                "operator": "IN",
+                                "value": [
+                                    3,
+                                    6,
+                                    10,
+                                    11
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "AND",
+                        "conditions": [
+                            {
+                                "target": "AllBeneficPlanets",
+                                "exclude": [
+                                    "Moon"
+                                ],
+                                "property": "relative_house_to_lagna",
+                                "operator": "IN",
+                                "value": [
+                                    3,
+                                    6,
+                                    10,
+                                    11
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_sakata",
+            "name": "Sakata Yoga",
+            "category": "Lunar Special",
+            "description": "The Moon placed in the 6th, 8th, or 12th house from Jupiter, provided the Moon is not in a Kendra from the Lagna.",
+            "results": "The native will experience a fluctuating wheel of fortune. They may lose their standing only to regain it, suffering through periodic phases of bad luck and sorrow.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Moon",
+                        "property": "relative_house_to_jupiter",
+                        "operator": "IN",
+                        "value": [
+                            6,
+                            8,
+                            12
+                        ]
+                    },
+                    {
+                        "target": "Moon",
+                        "property": "relative_house_to_lagna",
+                        "operator": "NOT_IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}

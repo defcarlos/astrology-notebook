@@ -1,0 +1,12 @@
+# Ignore astrological outputs and generated archives
+knowledge_base/
+*.zip
+
+# Ignore local ephemeris data (downloaded dynamically by the pipeline)
+ephe/
+
+# Ignore temporary and scratch folders
+scratch/
+.ipynb_checkpoints/
+__pycache__/
+*.pyc

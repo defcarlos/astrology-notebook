@@ -1,0 +1,186 @@
+{
+    "metadata": {
+        "source": "Core Yogas: Yokes to the Fruits of Karma by Ernst Wilhelm & 300 Important Combinations by B.V. Raman",
+        "description": "JSON schema for Lagna Yogas. Revised to patch Amala identity collisions, Chamara occupant counts, and synchronize Lagnadhi logic with Chandradhi.",
+        "version": "1.1",
+        "engine_notes": "Introduced 'AnyUnblemishedBenefic' target. Added 'MATCH_COUNT_GREATER_THAN_OR_EQUAL' to count specific planetary matches within an array of houses."
+    },
+    "yogas": [
+        {
+            "id": "yoga_lagnadhi",
+            "name": "Lagnadhi Yoga",
+            "category": "Lagna",
+            "description": "Benefic planets situated in the 6th, 7th, and 8th houses from the Lagna.",
+            "results": "The native will be a person of great intellect, learned in literature, free from diseases, and will lead a long, happy life, often rising to a high position like a minister or commander.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllBeneficPlanets",
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            6,
+                            7,
+                            8
+                        ]
+                    },
+                    {
+                        "target": "AllBeneficPlanets",
+                        "property": "relative_house_to_lagna",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 3
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_amala_lagna",
+            "name": "Amala Yoga (Lagna)",
+            "category": "Lagna",
+            "description": "An unblemished benefic (Jupiter, Venus, or well-associated Mercury) in the 10th house from the Lagna.",
+            "results": "The native will possess a spotless, unblemished character. They will be highly philanthropic, enjoy a prosperous life, and leave behind a lasting, positive legacy.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "target": "AnyUnblemishedBenefic",
+                        "property": "relative_house_to_lagna",
+                        "operator": "EQUALS",
+                        "value": 10
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_parvata",
+            "name": "Parvata Yoga",
+            "category": "Lagna",
+            "description": "Benefic planets occupying Kendras (angles), and the 6th and 8th houses free from malefic planets.",
+            "results": "The native will be highly fortunate, renowned, eloquent, and a leader of men. They will attain lasting financial stability and a solid, immovable reputation (like a mountain).",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "logical_operator": "EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyBeneficPlanet",
+                                "property": "relative_house_to_lagna",
+                                "operator": "IN",
+                                "value": [
+                                    1,
+                                    4,
+                                    7,
+                                    10
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "NOT_EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyMaleficPlanet",
+                                "property": "relative_house_to_lagna",
+                                "operator": "IN",
+                                "value": [
+                                    6,
+                                    8
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_kahala",
+            "name": "Kahala Yoga",
+            "category": "Lagna",
+            "description": "The lords of the 4th and 9th houses from the Lagna in mutual Kendras, and the Lagna Lord is strong.",
+            "results": "The native will be courageous, daring, and capable of commanding a large army or enterprise. They possess robust energy and can rise to positions of great authority.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "LordOf(4)",
+                        "property": "relative_house_to_target",
+                        "target_parameter": "LordOf(9)",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            7,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "LagnaLord",
+                        "property": "is_strong",
+                        "operator": "EQUALS",
+                        "value": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_chamara",
+            "name": "Chamara Yoga",
+            "category": "Lagna",
+            "description": "The Lagna Lord is exalted in a Kendra and receives the aspect of Jupiter, OR two benefics occupy the 1st, 7th, 9th, or 10th houses.",
+            "results": "The native will be long-lived, highly respected, and possess an attractive personality. They often become scholars, philosophers, or respected leaders favored by rulers.",
+            "rules": {
+                "logical_operator": "OR",
+                "conditions": [
+                    {
+                        "logical_operator": "AND",
+                        "conditions": [
+                            {
+                                "target": "LagnaLord",
+                                "property": "dignity",
+                                "operator": "EQUALS",
+                                "value": "Exaltation"
+                            },
+                            {
+                                "target": "LagnaLord",
+                                "property": "relative_house_to_lagna",
+                                "operator": "IN",
+                                "value": [
+                                    1,
+                                    4,
+                                    7,
+                                    10
+                                ]
+                            },
+                            {
+                                "target": "LagnaLord",
+                                "property": "is_aspected_by",
+                                "operator": "CONTAINS",
+                                "value": "Jupiter"
+                            }
+                        ]
+                    },
+                    {
+                        "logical_operator": "AND",
+                        "conditions": [
+                            {
+                                "target": "AnyBeneficPlanet",
+                                "property": "relative_house_to_lagna",
+                                "operator": "IN",
+                                "value": [
+                                    1,
+                                    7,
+                                    9,
+                                    10
+                                ],
+                                "match_count_operator": "GREATER_THAN_OR_EQUAL",
+                                "match_count_value": 2
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}

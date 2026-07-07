@@ -1,0 +1,391 @@
+{
+    "metadata": {
+        "source": "Core Yogas: Yokes to the Fruits of Karma by Ernst Wilhelm & 300 Important Combinations by B.V. Raman",
+        "description": "JSON schema for Deity and Avatar Yogas. Revised to patch dignity arrays (adding 'Friendly' state) and address missing OR conditions for Brahma Yoga.",
+        "version": "1.1",
+        "engine_notes": "Updated dignity evaluations to explicitly include 'Friendly' rather than generic 'is_strong'. Added nested OR logic within INITIALIZE_TARGET blocks for Brahma Yoga."
+    },
+    "yogas": [
+        {
+            "id": "yoga_sarasvati",
+            "name": "Sarasvati Yoga",
+            "category": "Deity & Avatar",
+            "description": "Jupiter, Venus, and Mercury occupying Kendras (1, 4, 7, 10), Trines (5, 9), or the 2nd house, with Jupiter being in its own, exaltation, or friendly sign.",
+            "results": "The native will be highly intelligent, articulate, and skilled in poetry, arts, or sciences. They will be celebrated for their wisdom, writing, and intellectual brilliance.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Mercury",
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            2,
+                            4,
+                            5,
+                            7,
+                            9,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "Venus",
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            2,
+                            4,
+                            5,
+                            7,
+                            9,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "Jupiter",
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            2,
+                            4,
+                            5,
+                            7,
+                            9,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "Jupiter",
+                        "property": "dignity",
+                        "operator": "IN",
+                        "value": [
+                            "Exaltation",
+                            "Own",
+                            "Friendly"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_srinatha",
+            "name": "Srinatha Yoga",
+            "category": "Deity & Avatar",
+            "description": "The 7th lord is exalted in the 10th house, and the 9th lord is conjoined with the 10th lord.",
+            "results": "The native will enjoy immense wealth, success, and power akin to a king. Their fortune often rises after marriage, bringing elevated status and a life of grandeur.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "SeventhLord",
+                        "target_value": "LordOf(7)",
+                        "evaluate": {
+                            "logical_operator": "AND",
+                            "conditions": [
+                                {
+                                    "target": "SeventhLord",
+                                    "property": "relative_house_to_lagna",
+                                    "operator": "EQUALS",
+                                    "value": 10
+                                },
+                                {
+                                    "target": "SeventhLord",
+                                    "property": "dignity",
+                                    "operator": "EQUALS",
+                                    "value": "Exaltation"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "NinthLord",
+                        "target_value": "LordOf(9)",
+                        "evaluate": {
+                            "logical_operator": "INITIALIZE_TARGET",
+                            "target_name": "TenthLord",
+                            "target_value": "LordOf(10)",
+                            "evaluate": {
+                                "logical_operator": "AND",
+                                "conditions": [
+                                    {
+                                        "target": "NinthLord",
+                                        "property": "relative_house_to_target",
+                                        "target_parameter": "TenthLord",
+                                        "operator": "EQUALS",
+                                        "value": 1
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_srikanta",
+            "name": "Srikanta Yoga",
+            "category": "Deity & Avatar",
+            "description": "The Lagna lord, Sun, and Moon are in their own, friendly, or exaltation signs while occupying Kendras or Trines.",
+            "results": "The native will wear the markers of Shiva\u2014being highly spiritual, tolerant, deeply devoted, and respected by the state. They remain undisturbed by worldly malice.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "LagnaLord",
+                        "property": "dignity",
+                        "operator": "IN",
+                        "value": [
+                            "Exaltation",
+                            "Own",
+                            "Friendly"
+                        ]
+                    },
+                    {
+                        "target": "LagnaLord",
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            5,
+                            7,
+                            9,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "Sun",
+                        "property": "dignity",
+                        "operator": "IN",
+                        "value": [
+                            "Exaltation",
+                            "Own",
+                            "Friendly"
+                        ]
+                    },
+                    {
+                        "target": "Sun",
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            5,
+                            7,
+                            9,
+                            10
+                        ]
+                    },
+                    {
+                        "target": "Moon",
+                        "property": "dignity",
+                        "operator": "IN",
+                        "value": [
+                            "Exaltation",
+                            "Own",
+                            "Friendly"
+                        ]
+                    },
+                    {
+                        "target": "Moon",
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            1,
+                            4,
+                            5,
+                            7,
+                            9,
+                            10
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_brahma",
+            "name": "Brahma Yoga",
+            "category": "Deity & Avatar",
+            "description": "Jupiter is in a Kendra from the 9th lord; Venus is in a Kendra from the 11th lord; Mercury is in a Kendra from the Lagna lord OR the 10th lord.",
+            "results": "The native will be highly learned, pure-hearted, respected by scholars, long-lived, and endowed with wealth and charitable inclinations.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "NinthLord",
+                        "target_value": "LordOf(9)",
+                        "evaluate": {
+                            "logical_operator": "AND",
+                            "conditions": [
+                                {
+                                    "target": "Jupiter",
+                                    "property": "relative_house_to_target",
+                                    "target_parameter": "NinthLord",
+                                    "operator": "IN",
+                                    "value": [
+                                        1,
+                                        4,
+                                        7,
+                                        10
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "EleventhLord",
+                        "target_value": "LordOf(11)",
+                        "evaluate": {
+                            "logical_operator": "AND",
+                            "conditions": [
+                                {
+                                    "target": "Venus",
+                                    "property": "relative_house_to_target",
+                                    "target_parameter": "EleventhLord",
+                                    "operator": "IN",
+                                    "value": [
+                                        1,
+                                        4,
+                                        7,
+                                        10
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "logical_operator": "OR",
+                        "conditions": [
+                            {
+                                "logical_operator": "INITIALIZE_TARGET",
+                                "target_name": "FirstLord",
+                                "target_value": "LordOf(1)",
+                                "evaluate": {
+                                    "logical_operator": "AND",
+                                    "conditions": [
+                                        {
+                                            "target": "Mercury",
+                                            "property": "relative_house_to_target",
+                                            "target_parameter": "FirstLord",
+                                            "operator": "IN",
+                                            "value": [
+                                                1,
+                                                4,
+                                                7,
+                                                10
+                                            ]
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "logical_operator": "INITIALIZE_TARGET",
+                                "target_name": "TenthLord",
+                                "target_value": "LordOf(10)",
+                                "evaluate": {
+                                    "logical_operator": "AND",
+                                    "conditions": [
+                                        {
+                                            "target": "Mercury",
+                                            "property": "relative_house_to_target",
+                                            "target_parameter": "TenthLord",
+                                            "operator": "IN",
+                                            "value": [
+                                                1,
+                                                4,
+                                                7,
+                                                10
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_siva",
+            "name": "Siva Yoga",
+            "category": "Deity & Avatar",
+            "description": "The lord of the 5th is in the 9th, the lord of the 9th is in the 10th, and the lord of the 10th is in the 5th.",
+            "results": "The native will be a great commander, leader, or successful entrepreneur. They will conquer their enemies and lead a victorious, highly decorated life.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "LordOf(5)",
+                        "property": "relative_house_to_lagna",
+                        "operator": "EQUALS",
+                        "value": 9
+                    },
+                    {
+                        "target": "LordOf(9)",
+                        "property": "relative_house_to_lagna",
+                        "operator": "EQUALS",
+                        "value": 10
+                    },
+                    {
+                        "target": "LordOf(10)",
+                        "property": "relative_house_to_lagna",
+                        "operator": "EQUALS",
+                        "value": 5
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_indra",
+            "name": "Indra Yoga",
+            "category": "Deity & Avatar",
+            "description": "The lords of the 5th and 11th houses are in mutual Kendras, and the Moon is in the 5th house.",
+            "results": "The native will be highly courageous, wealthy, and enjoy significant political or executive authority. They will have a strong voice and a commanding presence.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Moon",
+                        "property": "relative_house_to_lagna",
+                        "operator": "EQUALS",
+                        "value": 5
+                    },
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "FifthLord",
+                        "target_value": "LordOf(5)",
+                        "evaluate": {
+                            "logical_operator": "INITIALIZE_TARGET",
+                            "target_name": "EleventhLord",
+                            "target_value": "LordOf(11)",
+                            "evaluate": {
+                                "logical_operator": "AND",
+                                "conditions": [
+                                    {
+                                        "target": "FifthLord",
+                                        "property": "relative_house_to_target",
+                                        "target_parameter": "EleventhLord",
+                                        "operator": "IN",
+                                        "value": [
+                                            1,
+                                            4,
+                                            7,
+                                            10
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

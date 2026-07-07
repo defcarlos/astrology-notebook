@@ -1,0 +1,346 @@
+{
+    "metadata": {
+        "source": "Core Yogas: Yokes to the Fruits of Karma by Ernst Wilhelm & 300 Important Combinations by B.V. Raman",
+        "description": "JSON schema for Raja and Dhana Yogas. Revised to remove vague macros, explicitly initialize all dynamic targets, and utilize precise relational aspect/conjunction tracking.",
+        "version": "1.1",
+        "engine_notes": "Replaced 'is_aspected_by_strong_planet' with nested EXISTS blocks looking for 'AnyStrongPlanet' passing an 'aspects_target' condition. Replaced boolean 'is_odd_sign' with a generic 'sign_polarity' property."
+    },
+    "yogas": [
+        {
+            "id": "yoga_lakshmi",
+            "name": "Lakshmi Yoga",
+            "category": "Dhana & Raja",
+            "description": "The lord of the 9th house is in a Kendra or Trikona in its Exaltation, Own, or Mulatrikona sign, and the Lagna lord is strong.",
+            "results": "The native will be wealthy, noble, learned, of high integrity, and enjoy a flawless reputation. They will possess attractive looks and all the comforts of life.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "NinthLord",
+                        "target_value": "LordOf(9)",
+                        "evaluate": {
+                            "logical_operator": "AND",
+                            "conditions": [
+                                {
+                                    "target": "NinthLord",
+                                    "property": "relative_house_to_lagna",
+                                    "operator": "IN",
+                                    "value": [
+                                        1,
+                                        4,
+                                        5,
+                                        7,
+                                        9,
+                                        10
+                                    ]
+                                },
+                                {
+                                    "target": "NinthLord",
+                                    "property": "dignity",
+                                    "operator": "IN",
+                                    "value": [
+                                        "Exaltation",
+                                        "Own",
+                                        "Mulatrikona"
+                                    ]
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "FirstLord",
+                        "target_value": "LordOf(1)",
+                        "evaluate": {
+                            "logical_operator": "AND",
+                            "conditions": [
+                                {
+                                    "target": "FirstLord",
+                                    "property": "is_strong",
+                                    "operator": "EQUALS",
+                                    "value": true
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_gauri",
+            "name": "Gauri Yoga",
+            "category": "Dhana & Raja",
+            "description": "The Moon is exalted or in its own sign, and is aspected by Jupiter.",
+            "results": "The native will belong to a respectable family, possess a beautiful body, have a long string of successes, and be highly praised by friends and authorities.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Moon",
+                        "property": "dignity",
+                        "operator": "IN",
+                        "value": [
+                            "Exaltation",
+                            "Own"
+                        ]
+                    },
+                    {
+                        "target": "Jupiter",
+                        "property": "aspects_target",
+                        "target_parameter": "Moon",
+                        "operator": "EQUALS",
+                        "value": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_bheri",
+            "name": "Bheri Yoga",
+            "category": "Raja",
+            "description": "Venus, Jupiter, and the Lagna lord are in mutual Kendras, and the lord of the 9th is strong.",
+            "results": "The native will be highly practical, possess a large heart, and amass wealth from various sources. They will be long-lived, famous, and hold a position of considerable power.",
+            "rules": {
+                "logical_operator": "INITIALIZE_TARGET",
+                "target_name": "FirstLord",
+                "target_value": "LordOf(1)",
+                "evaluate": {
+                    "logical_operator": "AND",
+                    "conditions": [
+                        {
+                            "target": "Venus",
+                            "property": "relative_house_to_target",
+                            "target_parameter": "Jupiter",
+                            "operator": "IN",
+                            "value": [
+                                1,
+                                4,
+                                7,
+                                10
+                            ]
+                        },
+                        {
+                            "target": "FirstLord",
+                            "property": "relative_house_to_target",
+                            "target_parameter": "Jupiter",
+                            "operator": "IN",
+                            "value": [
+                                1,
+                                4,
+                                7,
+                                10
+                            ]
+                        },
+                        {
+                            "target": "FirstLord",
+                            "property": "relative_house_to_target",
+                            "target_parameter": "Venus",
+                            "operator": "IN",
+                            "value": [
+                                1,
+                                4,
+                                7,
+                                10
+                            ]
+                        },
+                        {
+                            "logical_operator": "INITIALIZE_TARGET",
+                            "target_name": "NinthLord",
+                            "target_value": "LordOf(9)",
+                            "evaluate": {
+                                "logical_operator": "AND",
+                                "conditions": [
+                                    {
+                                        "target": "NinthLord",
+                                        "property": "is_strong",
+                                        "operator": "EQUALS",
+                                        "value": true
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "yoga_pushkala",
+            "name": "Pushkala Yoga",
+            "category": "Dhana & Raja",
+            "description": "The lord of the Moon sign and the Lagna lord are conjoined in a Kendra or friendly house, aspected by a strong planet, and the Lagna has a strong planet.",
+            "results": "The native will be highly communicative, sweet-speaking, and extremely wealthy. They will be adorned with royal marks of honor and respected by kings or government officials.",
+            "rules": {
+                "logical_operator": "INITIALIZE_TARGET",
+                "target_name": "MoonSignLord",
+                "target_value": "DispositorOf(Moon)",
+                "evaluate": {
+                    "logical_operator": "INITIALIZE_TARGET",
+                    "target_name": "FirstLord",
+                    "target_value": "LordOf(1)",
+                    "evaluate": {
+                        "logical_operator": "AND",
+                        "conditions": [
+                            {
+                                "target": "FirstLord",
+                                "property": "relative_house_to_target",
+                                "target_parameter": "MoonSignLord",
+                                "operator": "EQUALS",
+                                "value": 1
+                            },
+                            {
+                                "logical_operator": "OR",
+                                "conditions": [
+                                    {
+                                        "target": "FirstLord",
+                                        "property": "relative_house_to_lagna",
+                                        "operator": "IN",
+                                        "value": [
+                                            1,
+                                            4,
+                                            7,
+                                            10
+                                        ]
+                                    },
+                                    {
+                                        "target": "FirstLord",
+                                        "property": "dignity",
+                                        "operator": "EQUALS",
+                                        "value": "Friendly"
+                                    }
+                                ]
+                            },
+                            {
+                                "logical_operator": "EXISTS",
+                                "conditions": [
+                                    {
+                                        "logical_operator": "INITIALIZE_TARGET",
+                                        "target_name": "StrongPlanetAspecting",
+                                        "target_value": "AnyStrongPlanet",
+                                        "evaluate": {
+                                            "logical_operator": "AND",
+                                            "conditions": [
+                                                {
+                                                    "target": "StrongPlanetAspecting",
+                                                    "property": "aspects_target",
+                                                    "target_parameter": "FirstLord",
+                                                    "operator": "EQUALS",
+                                                    "value": true
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                "logical_operator": "EXISTS",
+                                "conditions": [
+                                    {
+                                        "logical_operator": "INITIALIZE_TARGET",
+                                        "target_name": "StrongPlanetInLagna",
+                                        "target_value": "AnyStrongPlanet",
+                                        "evaluate": {
+                                            "logical_operator": "AND",
+                                            "conditions": [
+                                                {
+                                                    "target": "StrongPlanetInLagna",
+                                                    "property": "relative_house_to_lagna",
+                                                    "operator": "EQUALS",
+                                                    "value": 1
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "id": "yoga_maha_bhagya_male",
+            "name": "Maha Bhagya Yoga (Male)",
+            "category": "Raja / Extreme Fortune",
+            "description": "For a male native: Birth during the day, with the Sun, Moon, and Lagna all occupying odd signs.",
+            "results": "The native will be highly visible, charismatic, and a natural leader. They will experience an almost 'magical' string of good luck, immense public popularity, and lasting prosperity.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Chart",
+                        "property": "native_gender",
+                        "operator": "EQUALS",
+                        "value": "Male"
+                    },
+                    {
+                        "target": "Chart",
+                        "property": "birth_time",
+                        "operator": "EQUALS",
+                        "value": "Day"
+                    },
+                    {
+                        "target": "Sun",
+                        "property": "sign_polarity",
+                        "operator": "EQUALS",
+                        "value": "Odd"
+                    },
+                    {
+                        "target": "Moon",
+                        "property": "sign_polarity",
+                        "operator": "EQUALS",
+                        "value": "Odd"
+                    },
+                    {
+                        "target": "Lagna",
+                        "property": "sign_polarity",
+                        "operator": "EQUALS",
+                        "value": "Odd"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_maha_bhagya_female",
+            "name": "Maha Bhagya Yoga (Female)",
+            "category": "Raja / Extreme Fortune",
+            "description": "For a female native: Birth during the night, with the Sun, Moon, and Lagna all occupying even signs.",
+            "results": "The native will be endowed with excellent character, a long life, immense wealth, and a harmonious family life. She will be universally respected and highly fortunate.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "Chart",
+                        "property": "native_gender",
+                        "operator": "EQUALS",
+                        "value": "Female"
+                    },
+                    {
+                        "target": "Chart",
+                        "property": "birth_time",
+                        "operator": "EQUALS",
+                        "value": "Night"
+                    },
+                    {
+                        "target": "Sun",
+                        "property": "sign_polarity",
+                        "operator": "EQUALS",
+                        "value": "Even"
+                    },
+                    {
+                        "target": "Moon",
+                        "property": "sign_polarity",
+                        "operator": "EQUALS",
+                        "value": "Even"
+                    },
+                    {
+                        "target": "Lagna",
+                        "property": "sign_polarity",
+                        "operator": "EQUALS",
+                        "value": "Even"
+                    }
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,217 @@
+{
+    "metadata": {
+        "source": "Core Yogas: Yokes to the Fruits of Karma by Ernst Wilhelm & 300 Important Combinations by B.V. Raman",
+        "description": "JSON schema for Dispositor Yogas. Revised to patch target initialization scope and properly declare nested attributes.",
+        "version": "1.1",
+        "engine_notes": "Added INITIALIZE_TARGET to properly scope dynamic recursive targets before checking properties."
+    },
+    "yogas": [
+        {
+            "id": "yoga_parijata",
+            "name": "Parijata Yoga",
+            "category": "Dispositor",
+            "description": "The dispositor of the Lagna Lord, OR the Navamsa dispositor of that dispositor, is placed in a Kendra, a Trikona, or in its Exaltation sign.",
+            "results": "The native will be destined for a happy life, often in the middle or latter part. They will be highly respected by rulers/authorities, fond of traditions, and possess lasting wealth and conveyances.",
+            "rules": {
+                "logical_operator": "OR",
+                "conditions": [
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "PrimaryDispositor",
+                        "target_value": "DispositorOf(LagnaLord)",
+                        "evaluate": {
+                            "logical_operator": "OR",
+                            "conditions": [
+                                {
+                                    "target": "PrimaryDispositor",
+                                    "property": "relative_house_to_lagna",
+                                    "operator": "IN",
+                                    "value": [
+                                        1,
+                                        4,
+                                        7,
+                                        10,
+                                        5,
+                                        9
+                                    ]
+                                },
+                                {
+                                    "target": "PrimaryDispositor",
+                                    "property": "dignity",
+                                    "operator": "EQUALS",
+                                    "value": "Exaltation"
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "SecondaryDispositor",
+                        "target_value": "NavamsaDispositorOf(DispositorOf(LagnaLord))",
+                        "evaluate": {
+                            "logical_operator": "OR",
+                            "conditions": [
+                                {
+                                    "target": "SecondaryDispositor",
+                                    "property": "relative_house_to_lagna",
+                                    "operator": "IN",
+                                    "value": [
+                                        1,
+                                        4,
+                                        7,
+                                        10,
+                                        5,
+                                        9
+                                    ]
+                                },
+                                {
+                                    "target": "SecondaryDispositor",
+                                    "property": "dignity",
+                                    "operator": "EQUALS",
+                                    "value": "Exaltation"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_kahala_dispositor",
+            "name": "Kahala Yoga (Dispositor Variant)",
+            "category": "Dispositor",
+            "description": "The lord of the sign occupied by the Lagna Lord is in a Kendra or Trikona, AND is in its Exaltation or Own sign.",
+            "results": "The native will be bold, courageous, and highly ambitious. They will head a large organization, army, or community, and build significant wealth through daring efforts.",
+            "rules": {
+                "logical_operator": "INITIALIZE_TARGET",
+                "target_name": "KahalaDispositor",
+                "target_value": "DispositorOf(LagnaLord)",
+                "evaluate": {
+                    "logical_operator": "AND",
+                    "conditions": [
+                        {
+                            "target": "KahalaDispositor",
+                            "property": "relative_house_to_lagna",
+                            "operator": "IN",
+                            "value": [
+                                1,
+                                4,
+                                7,
+                                10,
+                                5,
+                                9
+                            ]
+                        },
+                        {
+                            "target": "KahalaDispositor",
+                            "property": "dignity",
+                            "operator": "IN",
+                            "value": [
+                                "Exaltation",
+                                "Own"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "yoga_neechabhanga_raja_1",
+            "name": "Neechabhanga Raja Yoga (Dispositor Kendra)",
+            "category": "Dispositor / Cancellation",
+            "description": "A planet is debilitated, BUT its dispositor (the lord of its debilitation sign) is in a Kendra from the Lagna or the Moon.",
+            "results": "The native will initially face severe struggles, setbacks, or low status in areas related to the debilitated planet, but this will dramatically reverse, leading to king-like success, respect, and immense prosperity.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "DebilitatedPlanetTarget",
+                        "target_value": "AnyDebilitatedPlanet",
+                        "evaluate": {
+                            "logical_operator": "INITIALIZE_TARGET",
+                            "target_name": "DispositorOfDebilitated",
+                            "target_value": "DispositorOf(DebilitatedPlanetTarget)",
+                            "evaluate": {
+                                "logical_operator": "OR",
+                                "conditions": [
+                                    {
+                                        "target": "DispositorOfDebilitated",
+                                        "property": "relative_house_to_lagna",
+                                        "operator": "IN",
+                                        "value": [
+                                            1,
+                                            4,
+                                            7,
+                                            10
+                                        ]
+                                    },
+                                    {
+                                        "target": "DispositorOfDebilitated",
+                                        "property": "relative_house_to_moon",
+                                        "operator": "IN",
+                                        "value": [
+                                            1,
+                                            4,
+                                            7,
+                                            10
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_neechabhanga_raja_2",
+            "name": "Neechabhanga Raja Yoga (Exaltation Lord Kendra)",
+            "category": "Dispositor / Cancellation",
+            "description": "A planet is debilitated, BUT the planet that would be exalted in that sign is in a Kendra from the Lagna or the Moon.",
+            "results": "The native's early life challenges and vulnerabilities will be transformed into their greatest strengths, elevating them to a position of commanding authority and widespread renown.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "DebilitatedPlanetTarget",
+                        "target_value": "AnyDebilitatedPlanet",
+                        "evaluate": {
+                            "logical_operator": "INITIALIZE_TARGET",
+                            "target_name": "ExaltationLord",
+                            "target_value": "ExaltationLordOf(DebilitatedPlanetTarget)",
+                            "evaluate": {
+                                "logical_operator": "OR",
+                                "conditions": [
+                                    {
+                                        "target": "ExaltationLord",
+                                        "property": "relative_house_to_lagna",
+                                        "operator": "IN",
+                                        "value": [
+                                            1,
+                                            4,
+                                            7,
+                                            10
+                                        ]
+                                    },
+                                    {
+                                        "target": "ExaltationLord",
+                                        "property": "relative_house_to_moon",
+                                        "operator": "IN",
+                                        "value": [
+                                            1,
+                                            4,
+                                            7,
+                                            10
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

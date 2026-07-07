@@ -1,0 +1,330 @@
+{
+    "metadata": {
+        "source": "Core Yogas: Yokes to the Fruits of Karma by Ernst Wilhelm & 300 Important Combinations by B.V. Raman",
+        "description": "JSON schema for Miscellaneous Core Yogas. Revised to patch dual-lordship collisions in Parivartana yogas and simplify continuous chain logic.",
+        "version": "1.2",
+        "engine_notes": "Replaced 'HomeHouseOf' with direct 'dispositor' matching for exchanges. Added 'rules_house' array evaluations to handle planets that rule two signs (preventing Maha/Dainya overlap). Replaced 'IS_CONSECUTIVE_FROM' with 'UNIQUE_COUNT_EQUALS: 7'."
+    },
+    "yogas": [
+        {
+            "id": "yoga_chapa",
+            "name": "Chapa (Karmuka) Yoga",
+            "category": "Nabhasa Akriti",
+            "description": "All 7 visible planets occupy the seven continuous houses from the 10th to the 4th house (10, 11, 12, 1, 2, 3, 4).",
+            "results": "The native will be a courageous fighter, overcoming enemies and thriving in competitive environments. Often serves in military, police, or protective roles.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            10,
+                            11,
+                            12,
+                            1,
+                            2,
+                            3,
+                            4
+                        ]
+                    },
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_lagna",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 7
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_danda",
+            "name": "Danda Yoga",
+            "category": "Nabhasa Akriti",
+            "description": "All 7 visible planets are restricted to the 10th, 11th, 12th, and 1st houses.",
+            "results": "The native may experience isolation or sever ties with family, often dedicating themselves to strict discipline, spiritual austerities, or solitary pursuits.",
+            "rules": {
+                "logical_operator": "AND",
+                "conditions": [
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_lagna",
+                        "operator": "IN",
+                        "value": [
+                            10,
+                            11,
+                            12,
+                            1
+                        ]
+                    },
+                    {
+                        "target": "AllPlanets",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "property": "relative_house_to_lagna",
+                        "operator": "UNIQUE_COUNT_EQUALS",
+                        "value": 4
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_maha",
+            "name": "Maha Yoga",
+            "category": "Parivartana / Exchange",
+            "description": "Mutual exchange of signs between the lords of any two auspicious houses (1, 2, 4, 5, 7, 9, 10, 11), ensuring neither rules a Dusthana (6, 8, 12) or the 3rd.",
+            "results": "The native will be blessed with immense fortune, authority, and prosperity. They will easily achieve their goals and command great respect in society.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "PlanetA",
+                        "target_value": "AnyPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "evaluate": {
+                            "logical_operator": "INITIALIZE_TARGET",
+                            "target_name": "PlanetB",
+                            "target_value": "AnyPlanet",
+                            "exclude": [
+                                "Rahu",
+                                "Ketu"
+                            ],
+                            "evaluate": {
+                                "logical_operator": "AND",
+                                "conditions": [
+                                    {
+                                        "target": "PlanetA",
+                                        "property": "is_different_from",
+                                        "operator": "EQUALS",
+                                        "value": "PlanetB"
+                                    },
+                                    {
+                                        "target": "PlanetA",
+                                        "property": "dispositor",
+                                        "operator": "EQUALS",
+                                        "value": "PlanetB"
+                                    },
+                                    {
+                                        "target": "PlanetB",
+                                        "property": "dispositor",
+                                        "operator": "EQUALS",
+                                        "value": "PlanetA"
+                                    },
+                                    {
+                                        "target": "PlanetA",
+                                        "property": "rules_house",
+                                        "operator": "NOT_IN",
+                                        "value": [
+                                            3,
+                                            6,
+                                            8,
+                                            12
+                                        ]
+                                    },
+                                    {
+                                        "target": "PlanetB",
+                                        "property": "rules_house",
+                                        "operator": "NOT_IN",
+                                        "value": [
+                                            3,
+                                            6,
+                                            8,
+                                            12
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_dainya",
+            "name": "Dainya Yoga",
+            "category": "Parivartana / Exchange",
+            "description": "Mutual exchange of signs involving a Dusthana lord (6, 8, 12) and the lord of any other house.",
+            "results": "The native will face steady obstacles, financial fluctuations, and opposition from enemies. They may suffer from a wavering mind or speak harshly.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "PlanetA",
+                        "target_value": "AnyPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "evaluate": {
+                            "logical_operator": "INITIALIZE_TARGET",
+                            "target_name": "PlanetB",
+                            "target_value": "AnyPlanet",
+                            "exclude": [
+                                "Rahu",
+                                "Ketu"
+                            ],
+                            "evaluate": {
+                                "logical_operator": "AND",
+                                "conditions": [
+                                    {
+                                        "target": "PlanetA",
+                                        "property": "is_different_from",
+                                        "operator": "EQUALS",
+                                        "value": "PlanetB"
+                                    },
+                                    {
+                                        "target": "PlanetA",
+                                        "property": "dispositor",
+                                        "operator": "EQUALS",
+                                        "value": "PlanetB"
+                                    },
+                                    {
+                                        "target": "PlanetB",
+                                        "property": "dispositor",
+                                        "operator": "EQUALS",
+                                        "value": "PlanetA"
+                                    },
+                                    {
+                                        "logical_operator": "OR",
+                                        "conditions": [
+                                            {
+                                                "target": "PlanetA",
+                                                "property": "rules_house",
+                                                "operator": "IN",
+                                                "value": [
+                                                    6,
+                                                    8,
+                                                    12
+                                                ]
+                                            },
+                                            {
+                                                "target": "PlanetB",
+                                                "property": "rules_house",
+                                                "operator": "IN",
+                                                "value": [
+                                                    6,
+                                                    8,
+                                                    12
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": "yoga_khala",
+            "name": "Khala Yoga",
+            "category": "Parivartana / Exchange",
+            "description": "Mutual exchange of signs involving the lord of the 3rd house and the lord of any other house (excluding 6, 8, 12).",
+            "results": "The native's life will be marked by extreme fluctuations. They may swing between sudden success and unexpected failure, often characterized by a combative or highly ambitious nature.",
+            "rules": {
+                "logical_operator": "EXISTS",
+                "conditions": [
+                    {
+                        "logical_operator": "INITIALIZE_TARGET",
+                        "target_name": "PlanetA",
+                        "target_value": "AnyPlanet",
+                        "exclude": [
+                            "Rahu",
+                            "Ketu"
+                        ],
+                        "evaluate": {
+                            "logical_operator": "INITIALIZE_TARGET",
+                            "target_name": "PlanetB",
+                            "target_value": "AnyPlanet",
+                            "exclude": [
+                                "Rahu",
+                                "Ketu"
+                            ],
+                            "evaluate": {
+                                "logical_operator": "AND",
+                                "conditions": [
+                                    {
+                                        "target": "PlanetA",
+                                        "property": "is_different_from",
+                                        "operator": "EQUALS",
+                                        "value": "PlanetB"
+                                    },
+                                    {
+                                        "target": "PlanetA",
+                                        "property": "dispositor",
+                                        "operator": "EQUALS",
+                                        "value": "PlanetB"
+                                    },
+                                    {
+                                        "target": "PlanetB",
+                                        "property": "dispositor",
+                                        "operator": "EQUALS",
+                                        "value": "PlanetA"
+                                    },
+                                    {
+                                        "target": "PlanetA",
+                                        "property": "rules_house",
+                                        "operator": "NOT_IN",
+                                        "value": [
+                                            6,
+                                            8,
+                                            12
+                                        ]
+                                    },
+                                    {
+                                        "target": "PlanetB",
+                                        "property": "rules_house",
+                                        "operator": "NOT_IN",
+                                        "value": [
+                                            6,
+                                            8,
+                                            12
+                                        ]
+                                    },
+                                    {
+                                        "logical_operator": "OR",
+                                        "conditions": [
+                                            {
+                                                "target": "PlanetA",
+                                                "property": "rules_house",
+                                                "operator": "CONTAINS",
+                                                "value": 3
+                                            },
+                                            {
+                                                "target": "PlanetB",
+                                                "property": "rules_house",
+                                                "operator": "CONTAINS",
+                                                "value": 3
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
