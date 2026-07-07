@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cosmic Astrology Report - {{subject_name}}</title>
+    <title>Cosmic Astrology Report - {{ subject.name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
@@ -393,18 +393,18 @@
     <div class="container">
         <header>
             <h1>Cosmic Astrology Report</h1>
-            <p class="subtitle">{{subject_name}}</p>
+            <p class="subtitle">{{ subject.name }}</p>
         </header>
 
         <main id="main-content">
             <!-- Compact Metadata Banner -->
             <section aria-label="Profile Details" class="meta-banner">
                 <p>
-                    <strong>Birth Data:</strong> {{birth_date}} at {{birth_time}} ({{birth_tz}})
+                    <strong>Birth Data:</strong> {{ subject.birth_data.date }} at {{ subject.birth_data.time }} ({{ subject.birth_data.timezone }})
                     <span class="meta-separator">|</span>
-                    <strong>Coordinates:</strong> {{birth_lat}}° N, {{birth_lon}}° W
+                    <strong>Coordinates:</strong> {{ subject.birth_data.latitude }}° N, {{ subject.birth_data.longitude }}° W
                     <span class="meta-separator">|</span>
-                    <strong>System:</strong> {{house_system}} ({{ayanamsa}})
+                    <strong>System:</strong> {{ meta.settings.house_system_name }} ({{ meta.settings.ayanamsa_name }})
                 </p>
             </section>
 
@@ -419,11 +419,11 @@
             <section id="chart-container" aria-label="Astrological Vedic Charts" class="chart-container show-north">
                 <!-- North Indian Box -->
                 <div id="chart-north-box" class="chart-box">
-                    {{north_chart_svg}}
+                    {{ north_chart_svg | safe }}
                 </div>
                 <!-- South Indian Box -->
                 <div id="chart-south-box" class="chart-box">
-                    {{south_chart_svg}}
+                    {{ south_chart_svg | safe }}
                 </div>
             </section>
 
@@ -458,7 +458,17 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {{planet_rows}}
+                                {% for p in chart.planets %}
+                                <tr>
+                                    <th scope="row">{{ p.name }}</th>
+                                    <td>{{ p.tropical_sign | default('-') }}</td>
+                                    <td>{{ p.tropical_house | default('-') }}</td>
+                                    <td>{{ p.tropical_degree_in_house | default('-') }}°</td>
+                                    <td>{{ p.dignity | default('-') }}</td>
+                                    <td>{{ p.shadbala.shadbala_total | default('-') }}</td>
+                                    <td>{{ p.sidereal_nakshatra | default('-') }}</td>
+                                </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
@@ -482,7 +492,19 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {{friendships_grid}}
+                                {% for p1 in classical_planets %}
+                                <tr>
+                                    <th scope="row">{{ p1 }}</th>
+                                    {% for p2 in classical_planets %}
+                                        {% if p1 == p2 %}
+                                            <td>-</td>
+                                        {% else %}
+                                            {% set rel = friendships.get(p1, {}).get(p2, 'Sama') %}
+                                            <td>{{ friendship_mapping.get(rel, rel) }}</td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
@@ -495,7 +517,19 @@
                         <button type="button" class="filter-btn active" id="yoga-filter-btn" aria-pressed="true">Show Active Yogas Only</button>
                     </div>
                     <div class="yoga-grid hide-inactive" id="yogas-grid-container">
-                        {{yogas_cards}}
+                        {% for y_name, y_data in chart.yogas.items() %}
+                            {% set status_class = "active" if y_data.active else "inactive" %}
+                            {% set status_text = "Active" if y_data.active else "Inactive" %}
+                            <div class="yoga-card {{ status_class }}">
+                                <h3 class="yoga-title">{{ y_name }}</h3>
+                                <span class="yoga-status {{ status_class }}">{{ status_text }}</span>
+                                <p>{{ y_data.description }}</p>
+                                {% if y_data.results and y_data.active %}
+                                    <p style="margin-top: 0.5rem; font-size: 0.95rem; color: var(--gold); font-weight: 500;">Interpretation: {{ y_data.results }}</p>
+                                {% endif %}
+                                <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-muted); font-style: italic;">{{ y_data.details }}</p>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
 
@@ -503,7 +537,37 @@
                 <div class="tab-content" id="tab-dashas" role="tabpanel" aria-labelledby="btn-dashas" tabindex="0" hidden>
                     <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Vimshottari Dasha Cycles</h2>
                     <div class="timeline">
-                        {{dashas_timeline}}
+                        {% for m in chart.vimshottari_dasha %}
+                            {% set is_m_active = m.start <= today <= m.end %}
+                            {% set active_class = " active" if is_m_active else "" %}
+                            <div class="timeline-item{{ active_class }}">
+                                <details {{ "open" if is_m_active else "" }}>
+                                    <summary class="timeline-title" style="cursor: pointer; outline: none; list-style: none;">
+                                        <strong>{{ m.lord }} Mahadasha</strong>
+                                        <span class="timeline-dates" style="display: block; margin-top: 0.25rem;">{{ m.start }} to {{ m.end }} ({{ m.duration_years }} years)</span>
+                                    </summary>
+                                    <div style="padding-left: 1rem; margin-top: 1rem; border-left: 1px dashed var(--border-color);">
+                                        {% for a in m.antardashas %}
+                                            {% set is_a_active = a.start <= today <= a.end %}
+                                            {% set a_style = "color: var(--teal);" if is_a_active else "color: var(--text-color);" %}
+                                            {% set a_open = "open" if is_a_active else "" %}
+                                            <details {{ a_open }} style="margin-bottom: 0.75rem; padding-left: 0.5rem;">
+                                                <summary style="cursor: pointer; {{ a_style }} font-weight: 600;">
+                                                    {{ a.lord }} Antardasha ({{ a.start }} to {{ a.end }})
+                                                </summary>
+                                                <div style="padding-left: 1.25rem; margin-top: 0.5rem; border-left: 1px dotted var(--border-color);">
+                                                    {% for p in a.pratyantardashas %}
+                                                        {% set is_p_active = p.start <= today <= p.end %}
+                                                        {% set p_style = "color: var(--teal); font-weight: 600;" if is_p_active else "" %}
+                                                        <p style="margin-bottom: 0.25rem; {{ p_style }}">• {{ p.lord }} sub-period: {{ p.start }} to {{ p.end }}</p>
+                                                    {% endfor %}
+                                                </div>
+                                            </details>
+                                        {% endfor %}
+                                    </div>
+                                </details>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
 
@@ -522,7 +586,15 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {{ashtakavarga_sav}}
+                                {% for sign in zodiac_signs %}
+                                    {% set points = chart.ashtakavarga.sav[loop.index0] | default(0) %}
+                                    {% set status = "🟢 Strong" if points > 28 else ("🔴 Weak" if points < 25 else "🟡 Neutral") %}
+                                    <tr>
+                                        <th scope="row">{{ sign }}</th>
+                                        <td>{{ points }}</td>
+                                        <td>{{ status }}</td>
+                                    </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
@@ -544,7 +616,20 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {{ashtakavarga_bav}}
+                                {% for sign in zodiac_signs %}
+                                    {% set idx = loop.index0 %}
+                                    <tr>
+                                        <th scope="row">{{ sign }}</th>
+                                        <td>{{ chart.ashtakavarga.bav.Sun[idx] | default(0) }}</td>
+                                        <td>{{ chart.ashtakavarga.bav.Moon[idx] | default(0) }}</td>
+                                        <td>{{ chart.ashtakavarga.bav.Mars[idx] | default(0) }}</td>
+                                        <td>{{ chart.ashtakavarga.bav.Mercury[idx] | default(0) }}</td>
+                                        <td>{{ chart.ashtakavarga.bav.Jupiter[idx] | default(0) }}</td>
+                                        <td>{{ chart.ashtakavarga.bav.Venus[idx] | default(0) }}</td>
+                                        <td>{{ chart.ashtakavarga.bav.Saturn[idx] | default(0) }}</td>
+                                        <td><strong>{{ chart.ashtakavarga.sav[idx] | default(0) }}</strong></td>
+                                    </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
@@ -564,7 +649,15 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {{transits_rows}}
+                                {% for name, t in chart.transits.items() %}
+                                    {% set status = "🟢 Auspicious" if t.is_auspicious else "🔴 Challenging" %}
+                                    <tr>
+                                        <th scope="row">{{ name }}</th>
+                                        <td>{{ t.transit_sign | default('-') }}</td>
+                                        <td>{{ t.house_from_moon | default('-') }}</td>
+                                        <td>{{ status }}</td>
+                                    </tr>
+                                {% endfor %}
                             </tbody>
                         </table>
                     </div>
