@@ -1,6 +1,6 @@
 # Universal Astrological OKF Engine
 
-A comprehensive Python-based astrological calculation engine that translates classic Vedic configurations into algorithmically computable rules. This project uses the Swiss Ephemeris (`pyswisseph`) to generate birth charts, divisional harmonics, planetary strengths, Ashtakavarga grids, and Vimshottari dasha cycles, outputting premium interactive dashboards and LLM-friendly payloads.
+A comprehensive Python-based astrological calculation engine that translates classic Vedic configurations into algorithmically computable rules. This project uses the Swiss Ephemeris (`pysweph`) to generate birth charts, divisional harmonics, planetary strengths, Ashtakavarga grids, and Vimshottari dasha cycles, outputting premium interactive dashboards and LLM-friendly payloads.
 
 ---
 
@@ -35,7 +35,7 @@ A comprehensive Python-based astrological calculation engine that translates cla
 ### Prerequisites
 Ensure you have Python 3 and the required libraries installed:
 ```bash
-pip install pyswisseph numpy pandas ipywidgets
+pip install pysweph pyyaml requests tzdata jinja2 python-dateutil
 ```
 
 ### Steps
