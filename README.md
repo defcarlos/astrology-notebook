@@ -35,7 +35,7 @@ A comprehensive Python-based astrological calculation engine that translates cla
 ### Prerequisites
 Ensure you have Python 3 and the required libraries installed:
 ```bash
-pip install pysweph pyyaml requests tzdata jinja2 python-dateutil
+pip install pysweph pyyaml requests tzdata jinja2 python-dateutil geopy
 ```
 
 ### Steps
