@@ -14,7 +14,9 @@ from astrology_engine import (
     ShadbalaEngine,
     AshtakavargaEngine,
     YogaEngine,
-    AstroMath
+    AstroMath,
+    JaiminiEngine,
+    PanchangaEngine
 )
 
 # Configure Swiss Ephemeris path
@@ -51,7 +53,11 @@ def calculate_chart_profile(year, month, day, time_str, tz, lat, lon, mode="Trop
     subject_profile = {"name": "Test Subject", "gender": "Male"}
     yogas = YogaEngine.scan_yogas(chart, local_sky, mode, yogas_rules_path, subject_profile)
     
-    return chart, local_sky, yogas, ashtakavarga
+    # 7. Calculate Jaimini Karakas and Daily Panchanga
+    jaimini_karakas = JaiminiEngine.get_karakas(chart)
+    panchanga = PanchangaEngine.calculate_panchanga(epoch_time, chart, lat, lon)
+    
+    return chart, local_sky, yogas, ashtakavarga, jaimini_karakas, panchanga
 
 class TestAstrologyEngine(unittest.TestCase):
 
@@ -60,7 +66,7 @@ class TestAstrologyEngine(unittest.TestCase):
         Verify Steve Jobs chart in Tropical-Vedic mode.
         """
         # Steve Jobs: Feb 24, 1955 at 19:15, San Francisco, CA
-        chart, local_sky, yogas, ashtakavarga = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga = calculate_chart_profile(
             year=1955, month=2, day=24, time_str="19:15", tz="America/Los_Angeles",
             lat=37.7749, lon=-122.4194, mode="Tropical-Vedic"
         )
@@ -89,12 +95,39 @@ class TestAstrologyEngine(unittest.TestCase):
         # Ruchaka Yoga should be inactive (Mars in Aries in 8th house, not a kendra)
         self.assertFalse(yogas.get("Ruchaka Yoga", {}).get("active"))
 
+        # --- Phase 1: Shodashavarga Verification ---
+        # Ensure all 16 divisional charts exist
+        expected_vargas = ["D1", "D2", "D3", "D4", "D7", "D9", "D10", "D12", "D16", "D20", "D24", "D27", "D30", "D40", "D45", "D60"]
+        for v in expected_vargas:
+            self.assertIn(v, chart["Sun"].vargas)
+            
+        # Verify specific vargas for Steve Jobs (in Tropical-Vedic mode)
+        # Sun is at approx 335.7481 degrees (Pisces 5.7481).
+        # D4 of Sun: sign_idx=11, offset=5.7481. part = 0. AstroMath.ZODIAC_SIGNS[(11 + 0*3)%12] = Pisces
+        self.assertEqual(chart["Sun"].vargas["D4"], "Pisces")
+        # D30 of Sun: sign_idx=11 (Even sign - Pisces). offset = 5.7481.
+        # Since offset >= 5 and offset < 12, even D30 governs Gemini (ruled by Mercury).
+        self.assertEqual(chart["Sun"].vargas["D30"], "Gemini")
+
+        # --- Phase 1: Jaimini Karakas Verification ---
+        # Mercury has the highest sign degree for Steve Jobs (~24.9678), making it Atmakaraka
+        self.assertEqual(jaimini["Mercury"]["role"], "Atmakaraka (Self/Soul)")
+        self.assertEqual(jaimini["Jupiter"]["role"], "Darakaraka (Spouse/Partners)") # Lowest degree (~1.114)
+
+        # --- Phase 1: Panchanga Verification ---
+        self.assertEqual(panchanga["tithi"]["name"], "Tritiya")
+        self.assertEqual(panchanga["tithi"]["paksha"], "Shukla")
+        self.assertEqual(panchanga["nakshatra"]["name"], "Revati")
+        self.assertEqual(panchanga["yoga"]["name"], "Shubha")
+        self.assertEqual(panchanga["karana"]["name"], "Gara")
+        self.assertEqual(panchanga["vara"]["name"], "Thursday") # Birth at 19:15 after sunrise
+
     def test_albert_einstein_sidereal(self):
         """
         Verify Albert Einstein chart in Sidereal (Everything) mode.
         """
         # Albert Einstein: Mar 14, 1879, 11:30 AM, Ulm, Germany
-        chart, local_sky, yogas, ashtakavarga = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga = calculate_chart_profile(
             year=1879, month=3, day=14, time_str="11:30", tz="Europe/Berlin",
             lat=48.4011, lon=9.9876, mode="Everything"
         )
@@ -118,12 +151,27 @@ class TestAstrologyEngine(unittest.TestCase):
         # Amala Yoga should be active
         self.assertTrue(yogas.get("Amala Yoga", {}).get("active"))
 
+        # --- Phase 1: Jaimini Verification ---
+        # Venus has the highest degree in sign (~28.6857) for Einstein, making it Atmakaraka
+        self.assertEqual(jaimini["Venus"]["role"], "Atmakaraka (Self/Soul)")
+        # Sun has the lowest degree (~5.2107), making it Darakaraka
+        self.assertEqual(jaimini["Sun"]["role"], "Darakaraka (Spouse/Partners)")
+
+        # --- Phase 1: Panchanga Verification ---
+        self.assertEqual(panchanga["tithi"]["name"], "Saptami")
+        self.assertEqual(panchanga["tithi"]["paksha"], "Krishna")
+        self.assertEqual(panchanga["nakshatra"]["name"], "Jyeshtha")
+        self.assertEqual(panchanga["yoga"]["name"], "Siddhi")
+        self.assertEqual(panchanga["karana"]["name"], "Bava")
+        # Birth at 11:30 AM local is after 6:16 AM local sunrise, so it's Friday (matching calendar day)
+        self.assertEqual(panchanga["vara"]["name"], "Friday")
+
     def test_barack_obama_sidereal(self):
         """
         Verify Barack Obama chart in Sidereal (Everything) mode.
         """
         # Barack Obama: Aug 4, 1961, 19:24, Honolulu, HI
-        chart, local_sky, yogas, ashtakavarga = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga = calculate_chart_profile(
             year=1961, month=8, day=4, time_str="19:24", tz="Pacific/Honolulu",
             lat=21.3069, lon=-157.8583, mode="Everything"
         )
@@ -151,7 +199,7 @@ class TestAstrologyEngine(unittest.TestCase):
         """
         # Mahatma Gandhi: Oct 2, 1869, 07:12 AM, Porbandar, India
         # A timezone of 4.6533 accounts for the local mean time of the location
-        chart, local_sky, yogas, ashtakavarga = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga = calculate_chart_profile(
             year=1869, month=10, day=2, time_str="07:12", tz=4.6533,
             lat=21.6407, lon=69.6006, mode="Everything"
         )

@@ -214,10 +214,18 @@ class VargaEngine:
             "D1": VargaEngine.calculate_d1(lon),
             "D2": VargaEngine.calculate_d2(lon),
             "D3": VargaEngine.calculate_d3(lon),
+            "D4": VargaEngine.calculate_d4(lon),
             "D7": VargaEngine.calculate_d7(lon),
             "D9": VargaEngine.calculate_d9(lon),
             "D10": VargaEngine.calculate_d10(lon),
             "D12": VargaEngine.calculate_d12(lon),
+            "D16": VargaEngine.calculate_d16(lon),
+            "D20": VargaEngine.calculate_d20(lon),
+            "D24": VargaEngine.calculate_d24(lon),
+            "D27": VargaEngine.calculate_d27(lon),
+            "D30": VargaEngine.calculate_d30(lon),
+            "D40": VargaEngine.calculate_d40(lon),
+            "D45": VargaEngine.calculate_d45(lon),
             "D60": VargaEngine.calculate_d60(lon)
         }
 
@@ -241,6 +249,12 @@ class VargaEngine:
         return AstroMath.ZODIAC_SIGNS[(sign_idx + part * 4) % 12]
 
     @staticmethod
+    def calculate_d4(lon):
+        sign_idx = int(lon // 30) % 12
+        part = int((lon % 30) // 7.5)
+        return AstroMath.ZODIAC_SIGNS[(sign_idx + part * 3) % 12]
+
+    @staticmethod
     def calculate_d7(lon):
         sign_idx = int(lon // 30) % 12
         part = int((lon % 30) // (30 / 7))
@@ -260,6 +274,100 @@ class VargaEngine:
     @staticmethod
     def calculate_d12(lon):
         return AstroMath.ZODIAC_SIGNS[(int(lon // 30) + int((lon % 30) // 2.5)) % 12]
+
+    @staticmethod
+    def calculate_d16(lon):
+        sign_idx = int(lon // 30) % 12
+        part = int((lon % 30) // 1.875)
+        if sign_idx in [0, 3, 6, 9]:  # Movable: Aries, Cancer, Libra, Capricorn
+            start = 0
+        elif sign_idx in [1, 4, 7, 10]:  # Fixed: Taurus, Leo, Scorpio, Aquarius
+            start = 4
+        else:  # Dual: Gemini, Virgo, Sagittarius, Pisces
+            start = 8
+        return AstroMath.ZODIAC_SIGNS[(start + part) % 12]
+
+    @staticmethod
+    def calculate_d20(lon):
+        sign_idx = int(lon // 30) % 12
+        part = int((lon % 30) // 1.5)
+        if sign_idx in [0, 3, 6, 9]:  # Movable
+            start = 0
+        elif sign_idx in [1, 4, 7, 10]:  # Fixed
+            start = 8
+        else:  # Dual
+            start = 4
+        return AstroMath.ZODIAC_SIGNS[(start + part) % 12]
+
+    @staticmethod
+    def calculate_d24(lon):
+        sign_idx = int(lon // 30) % 12
+        part = int((lon % 30) // 1.25)
+        if sign_idx % 2 == 0:  # Odd sign
+            start = 4  # Leo
+        else:  # Even sign
+            start = 3  # Cancer
+        return AstroMath.ZODIAC_SIGNS[(start + part) % 12]
+
+    @staticmethod
+    def calculate_d27(lon):
+        sign_idx = int(lon // 30) % 12
+        part = int((lon % 30) // (30.0 / 27.0))
+        if sign_idx in [0, 4, 8]:  # Fire
+            start = 0
+        elif sign_idx in [1, 5, 9]:  # Earth
+            start = 9
+        elif sign_idx in [2, 6, 10]:  # Air
+            start = 6
+        else:  # Water
+            start = 3
+        return AstroMath.ZODIAC_SIGNS[(start + part) % 12]
+
+    @staticmethod
+    def calculate_d30(lon):
+        sign_idx = int(lon // 30) % 12
+        offset = lon % 30
+        if sign_idx % 2 == 0:  # Odd sign
+            if offset < 5:
+                return "Aries"
+            elif offset < 10:
+                return "Aquarius"
+            elif offset < 18:
+                return "Sagittarius"
+            elif offset < 25:
+                return "Gemini"
+            else:
+                return "Taurus"
+        else:  # Even sign
+            if offset < 5:
+                return "Taurus"
+            elif offset < 12:
+                return "Gemini"
+            elif offset < 20:
+                return "Sagittarius"
+            elif offset < 25:
+                return "Aquarius"
+            else:
+                return "Aries"
+
+    @staticmethod
+    def calculate_d40(lon):
+        sign_idx = int(lon // 30) % 12
+        part = int((lon % 30) // 0.75)
+        start = 0 if sign_idx % 2 == 0 else 6
+        return AstroMath.ZODIAC_SIGNS[(start + part) % 12]
+
+    @staticmethod
+    def calculate_d45(lon):
+        sign_idx = int(lon // 30) % 12
+        part = int((lon % 30) // (2.0 / 3.0))
+        if sign_idx in [0, 3, 6, 9]:  # Movable
+            start = 0
+        elif sign_idx in [1, 4, 7, 10]:  # Fixed
+            start = 4
+        else:  # Dual
+            start = 8
+        return AstroMath.ZODIAC_SIGNS[(start + part) % 12]
 
     @staticmethod
     def calculate_d60(lon):
@@ -1404,4 +1512,147 @@ class HTMLReporter:
         
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(rendered_html)
+
+
+# --- 8. JAIMINI SYSTEM ENGINES ---
+class JaiminiEngine:
+    KARAKA_ROLES = [
+        "Atmakaraka (Self/Soul)",
+        "Amatyakaraka (Career/Profession)",
+        "Bhratrukaraka (Siblings/Guru)",
+        "Matrukaraka (Mother)",
+        "Putrakaraka (Children/Education)",
+        "Jnatikaraka (Relatives/Obstacles)",
+        "Darakaraka (Spouse/Partners)"
+    ]
+
+    @classmethod
+    def get_karakas(cls, chart):
+        classical_names = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
+        planets_with_degrees = []
+        for name in classical_names:
+            if name in chart:
+                p = chart[name]
+                # Determine which longitude to use
+                lon = p.sidereal_longitude if hasattr(p, "sidereal_longitude") else p.tropical_longitude
+                deg_in_sign = lon % 30
+                planets_with_degrees.append((name, deg_in_sign))
+        
+        # Sort descending by degree
+        planets_with_degrees.sort(key=lambda x: x[1], reverse=True)
+        
+        karakas = {}
+        for idx, (name, deg) in enumerate(planets_with_degrees):
+            if idx < len(cls.KARAKA_ROLES):
+                karakas[name] = {
+                    "role": cls.KARAKA_ROLES[idx],
+                    "degree": round(deg, 4)
+                }
+        return karakas
+
+
+# --- 9. PANCHANGA SYSTEM ENGINES ---
+class PanchangaEngine:
+    YOGA_NAMES = [
+        "Vishkumbha", "Preeti", "Ayushman", "Saubhagya", "Shobhana", "Atiganda",
+        "Sukarma", "Dhriti", "Shoola", "Ganda", "Vriddhi", "Dhruva", "Vyaghata",
+        "Harshana", "Vajra", "Siddhi", "Vyatipata", "Variyan", "Parigha", "Shiva",
+        "Siddha", "Sadhya", "Shubha", "Shukla", "Brahma", "Indra", "Vaidhriti"
+    ]
+    
+    TITHI_NAMES = [
+        "Pratipat", "Dwitiya", "Tritiya", "Chaturthi", "Panchami", "Shashti",
+        "Saptami", "Ashtami", "Navami", "Dashami", "Ekadashi", "Dwadashi",
+        "Trayodashi", "Chaturdashi"
+    ]
+    
+    KARANA_NAMES = ["Bava", "Balava", "Kaulava", "Taitila", "Gara", "Vanija", "Vishti"]
+    
+    WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+    @classmethod
+    def calculate_panchanga(cls, astro_time, chart, lat, lon):
+        import datetime
+        # Moon and Sun longitudes in sidereal frame
+        sun_lon = chart["Sun"].sidereal_longitude
+        moon_lon = chart["Moon"].sidereal_longitude
+        
+        # Tithi calculation
+        angle = (moon_lon - sun_lon) % 360
+        t_idx = int(angle // 12)  # 0 to 29
+        if t_idx == 14:
+            tithi_name = "Purnima"
+            paksha = "Shukla"
+        elif t_idx == 29:
+            tithi_name = "Amavasya"
+            paksha = "Krishna"
+        else:
+            tithi_name = cls.TITHI_NAMES[t_idx % 15]
+            paksha = "Shukla" if t_idx < 15 else "Krishna"
+            
+        # Nakshatra calculation (using Moon's nakshatra already in chart)
+        nak_name = chart["Moon"].nakshatra
+        
+        # Yoga calculation
+        yoga_angle = (sun_lon + moon_lon) % 360
+        y_idx = int(yoga_angle // (360.0 / 27.0)) % 27
+        yoga_name = cls.YOGA_NAMES[y_idx]
+        
+        # Karana calculation
+        k_idx = int(angle // 6)  # 0 to 59
+        if k_idx == 0:
+            karana_name = "Kimstughna"
+        elif k_idx == 57:
+            karana_name = "Shakuni"
+        elif k_idx == 58:
+            karana_name = "Chatuspada"
+        elif k_idx == 59:
+            karana_name = "Naga"
+        else:
+            karana_name = cls.KARANA_NAMES[(k_idx - 1) % 7]
+            
+        # Weekday calculation with Sunrise adjustment
+        b_date = datetime.date(astro_time.year, astro_time.month, astro_time.day)
+        
+        try:
+            # Calculate local midnight Julian Day to search forward from
+            midnight_time = AstroTime(astro_time.year, astro_time.month, astro_time.day, 0.0, astro_time.tz)
+            # swe.CALC_RISE = 1
+            res = swe.rise_trans(midnight_time.jd, swe.SUN, 1, [lon, lat, 0.0], 0.0, 0.0, swe.FLG_SWIEPH)
+            sunrise_jd = res[1][0]
+        except Exception:
+            sunrise_jd = None
+            
+        if sunrise_jd is not None and astro_time.jd < sunrise_jd:
+            # Born before sunrise, belongs to previous Vedic day
+            vedic_date = b_date - datetime.timedelta(days=1)
+        else:
+            vedic_date = b_date
+            
+        vara_name = cls.WEEKDAYS[vedic_date.weekday()]
+        
+        return {
+            "tithi": {
+                "number": t_idx + 1,
+                "name": tithi_name,
+                "paksha": paksha
+            },
+            "nakshatra": {
+                "name": nak_name,
+                "longitude": round(moon_lon, 4)
+            },
+            "yoga": {
+                "name": yoga_name,
+                "index": y_idx + 1
+            },
+            "karana": {
+                "number": k_idx + 1,
+                "name": karana_name
+            },
+            "vara": {
+                "name": vara_name,
+                "calendar_day": cls.WEEKDAYS[b_date.weekday()]
+            }
+        }
+
 
