@@ -56,3 +56,23 @@ pip install pysweph pyyaml requests tzdata jinja2 python-dateutil
    * Stored compact LLM payload: `knowledge_base/<name>/<name>_llm_payload.json`
    * Stored interactive HTML report: `knowledge_base/<name>/<name>_report.html`
    * Bundled production archive: `C:\Users\carlo\Documents\astrology-notebook\<name>_astrology_profile_final.zip`
+
+---
+
+## 🧪 Testing & Validation
+
+To ensure astronomical and logic calculation accuracy, the project includes a validation suite in the [tests/test_astrology_engine.py](file:///C:/Users/carlo/Documents/astrology-notebook/tests/test_astrology_engine.py) file. This suite calculates and asserts the charts of verified historical figures (all rated AA by Astro-Databank) in both `Tropical-Vedic` and `Sidereal-Vedic` modes:
+
+* **Steve Jobs**: Validates tropical Ascendant (Virgo), Sun/Moon placements, and active yogas (such as Gajakesari and Amala).
+* **Albert Einstein**: Validates sidereal Ascendant (Gemini), exalted Venus (Pisces), and active yogas (such as Malavya and Amala).
+* **Barack Obama**: Validates sidereal Ascendant (Capricorn), Saturn in Capricorn/1st house, and the active *Sasa Yoga* (Pancha Mahapurusha).
+* **Mahatma Gandhi**: Validates sidereal Ascendant (Libra), Moon in Leo, and active yogas (such as Malavya and Gajakesari).
+
+### How to Run Tests
+
+You can execute the test suite directly from your terminal:
+
+```bash
+python tests/test_astrology_engine.py
+```
+
