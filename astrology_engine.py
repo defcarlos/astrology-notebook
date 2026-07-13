@@ -1635,7 +1635,8 @@ class PanchangaEngine:
             "tithi": {
                 "number": t_idx + 1,
                 "name": tithi_name,
-                "paksha": paksha
+                "paksha": paksha,
+                "phase": "Waxing" if paksha == "Shukla" else "Waning"
             },
             "nakshatra": {
                 "name": nak_name,

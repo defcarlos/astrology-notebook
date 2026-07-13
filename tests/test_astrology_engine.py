@@ -117,6 +117,7 @@ class TestAstrologyEngine(unittest.TestCase):
         # --- Phase 1: Panchanga Verification ---
         self.assertEqual(panchanga["tithi"]["name"], "Tritiya")
         self.assertEqual(panchanga["tithi"]["paksha"], "Shukla")
+        self.assertEqual(panchanga["tithi"]["phase"], "Waxing")
         self.assertEqual(panchanga["nakshatra"]["name"], "Revati")
         self.assertEqual(panchanga["yoga"]["name"], "Shubha")
         self.assertEqual(panchanga["karana"]["name"], "Gara")
@@ -160,6 +161,7 @@ class TestAstrologyEngine(unittest.TestCase):
         # --- Phase 1: Panchanga Verification ---
         self.assertEqual(panchanga["tithi"]["name"], "Saptami")
         self.assertEqual(panchanga["tithi"]["paksha"], "Krishna")
+        self.assertEqual(panchanga["tithi"]["phase"], "Waning")
         self.assertEqual(panchanga["nakshatra"]["name"], "Jyeshtha")
         self.assertEqual(panchanga["yoga"]["name"], "Siddhi")
         self.assertEqual(panchanga["karana"]["name"], "Bava")
