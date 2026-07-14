@@ -16,7 +16,8 @@ from astrology_engine import (
     YogaEngine,
     AstroMath,
     JaiminiEngine,
-    PanchangaEngine
+    PanchangaEngine,
+    PlanetarySynthesisEngine
 )
 
 # Configure Swiss Ephemeris path
@@ -57,7 +58,10 @@ def calculate_chart_profile(year, month, day, time_str, tz, lat, lon, mode="Trop
     jaimini_karakas = JaiminiEngine.get_karakas(chart)
     panchanga = PanchangaEngine.calculate_panchanga(epoch_time, chart, lat, lon)
     
-    return chart, local_sky, yogas, ashtakavarga, jaimini_karakas, panchanga
+    # 8. Calculate Planetary Synthesis
+    synthesis = PlanetarySynthesisEngine.calculate_synthesis(chart, local_sky, mode)
+    
+    return chart, local_sky, yogas, ashtakavarga, jaimini_karakas, panchanga, synthesis
 
 class TestAstrologyEngine(unittest.TestCase):
 
@@ -66,7 +70,7 @@ class TestAstrologyEngine(unittest.TestCase):
         Verify Steve Jobs chart in Tropical-Vedic mode.
         """
         # Steve Jobs: Feb 24, 1955 at 19:15, San Francisco, CA
-        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis = calculate_chart_profile(
             year=1955, month=2, day=24, time_str="19:15", tz="America/Los_Angeles",
             lat=37.7749, lon=-122.4194, mode="Tropical-Vedic"
         )
@@ -123,12 +127,19 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertEqual(panchanga["karana"]["name"], "Gara")
         self.assertEqual(panchanga["vara"]["name"], "Thursday") # Birth at 19:15 after sunrise
 
+        # --- Phase 1: Planetary Synthesis Verification ---
+        self.assertEqual(synthesis["Sun"]["shadbala"]["level"], "Strong")
+        self.assertEqual(synthesis["Sun"]["dignity"]["level"], "Neutral")
+        self.assertEqual(synthesis["Sun"]["ashtakavarga"]["bindus"], 2)
+        self.assertEqual(synthesis["Sun"]["ashtakavarga"]["level"], "Low Support")
+        self.assertEqual(synthesis["Sun"]["takeaway"], "High Drive / Lacks Resources")
+
     def test_albert_einstein_sidereal(self):
         """
         Verify Albert Einstein chart in Sidereal (Everything) mode.
         """
         # Albert Einstein: Mar 14, 1879, 11:30 AM, Ulm, Germany
-        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis = calculate_chart_profile(
             year=1879, month=3, day=14, time_str="11:30", tz="Europe/Berlin",
             lat=48.4011, lon=9.9876, mode="Everything"
         )
@@ -168,12 +179,27 @@ class TestAstrologyEngine(unittest.TestCase):
         # Birth at 11:30 AM local is after 6:16 AM local sunrise, so it's Friday (matching calendar day)
         self.assertEqual(panchanga["vara"]["name"], "Friday")
 
+        # --- Phase 1: Planetary Synthesis Verification ---
+        # Mars: Strong, Exalted, High Support -> Maximum Manifestation (Prime)
+        self.assertEqual(synthesis["Mars"]["shadbala"]["level"], "Strong")
+        self.assertEqual(synthesis["Mars"]["dignity"]["level"], "Auspicious")
+        self.assertEqual(synthesis["Mars"]["ashtakavarga"]["bindus"], 7)
+        self.assertEqual(synthesis["Mars"]["ashtakavarga"]["level"], "High Support")
+        self.assertEqual(synthesis["Mars"]["takeaway"], "Maximum Manifestation (Prime)")
+
+        # Venus: Strong, Exalted, Low Support -> High Drive / Lacks Resources
+        self.assertEqual(synthesis["Venus"]["shadbala"]["level"], "Strong")
+        self.assertEqual(synthesis["Venus"]["dignity"]["level"], "Auspicious")
+        self.assertEqual(synthesis["Venus"]["ashtakavarga"]["bindus"], 3)
+        self.assertEqual(synthesis["Venus"]["ashtakavarga"]["level"], "Low Support")
+        self.assertEqual(synthesis["Venus"]["takeaway"], "High Drive / Lacks Resources")
+
     def test_barack_obama_sidereal(self):
         """
         Verify Barack Obama chart in Sidereal (Everything) mode.
         """
         # Barack Obama: Aug 4, 1961, 19:24, Honolulu, HI
-        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis = calculate_chart_profile(
             year=1961, month=8, day=4, time_str="19:24", tz="Pacific/Honolulu",
             lat=21.3069, lon=-157.8583, mode="Everything"
         )
@@ -201,7 +227,7 @@ class TestAstrologyEngine(unittest.TestCase):
         """
         # Mahatma Gandhi: Oct 2, 1869, 07:12 AM, Porbandar, India
         # A timezone of 4.6533 accounts for the local mean time of the location
-        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis = calculate_chart_profile(
             year=1869, month=10, day=2, time_str="07:12", tz=4.6533,
             lat=21.6407, lon=69.6006, mode="Everything"
         )

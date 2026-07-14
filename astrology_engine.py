@@ -1657,3 +1657,116 @@ class PanchangaEngine:
         }
 
 
+# --- 10. PLANETARY SYNTHESIS ENGINE ---
+class PlanetarySynthesisEngine:
+    MINIMUM_REQUIREMENTS = {
+        "Sun": 390.0,
+        "Moon": 360.0,
+        "Mars": 300.0,
+        "Mercury": 420.0,
+        "Jupiter": 390.0,
+        "Venus": 330.0,
+        "Saturn": 300.0
+    }
+
+    @classmethod
+    def calculate_synthesis(cls, chart, local_sky, mode):
+        """
+        Synthesizes Shadbala, Dignity, and Ashtakavarga metrics for all classical planets.
+        """
+        synthesis_data = {}
+        classical_names = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
+        is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
+
+        # Extract Ashtakavarga points
+        ashtakavarga = AshtakavargaEngine.calculate_ashtakavarga(chart, local_sky, mode)
+        
+        for name in classical_names:
+            if name not in chart:
+                continue
+            p = chart[name]
+            
+            # 1. Evaluate Power (Shadbala)
+            total_shadbala = p.shadbala.get("shadbala_total", 0.0) if p.shadbala else 0.0
+            req_min = cls.MINIMUM_REQUIREMENTS.get(name, 0.0)
+            ratio = total_shadbala / req_min if req_min > 0 else 1.0
+            
+            if ratio >= 1.2:
+                power_level = "Very Strong"
+            elif ratio >= 1.0:
+                power_level = "Strong"
+            elif ratio >= 0.8:
+                power_level = "Moderate"
+            else:
+                power_level = "Weak"
+
+            # 2. Evaluate Intent (Dignity)
+            dignity = p.dignity
+            if dignity in ["Exalted", "Own Sign"]:
+                intent_level = "Auspicious"
+            elif dignity in ["Neutral", "Friendly Sign", "Friend's Sign"]:
+                intent_level = "Neutral"
+            else:
+                intent_level = "Challenging" # Debilitated / Enemy sign
+
+            # 3. Evaluate Terrain (Ashtakavarga points in current sign)
+            # Find the sign index (0 to 11) for the planet
+            lon = p.sidereal_longitude if is_sid else p.tropical_longitude
+            sign_idx = int(lon // 30) % 12
+            sign_name = AstroMath.ZODIAC_SIGNS[sign_idx]
+            
+            # Ashtakavarga points for this planet in this sign
+            bindus = 0
+            # ashtakavarga format is {"bav": {planet: [12 sign values]}, "sav": [12 values]}
+            bav = ashtakavarga.get("bav", {})
+            if name in bav:
+                bindus = bav[name][sign_idx]
+                
+            if bindus >= 5:
+                terrain_level = "High Support"
+            elif bindus == 4:
+                terrain_level = "Neutral"
+            else:
+                terrain_level = "Low Support"
+
+            # 4. Formulate Combined Takeaway Summary
+            if power_level in ["Very Strong", "Strong"] and intent_level == "Auspicious" and terrain_level == "High Support":
+                takeaway = "Maximum Manifestation (Prime)"
+            elif power_level in ["Very Strong", "Strong"] and intent_level in ["Auspicious", "Neutral"] and terrain_level == "High Support":
+                takeaway = "High Output / Smooth Manifestation"
+            elif power_level == "Weak" and intent_level in ["Auspicious", "Neutral"] and terrain_level == "High Support":
+                takeaway = "Easy Flow / Gentle Support"
+            elif power_level in ["Very Strong", "Strong"] and intent_level == "Challenging" and terrain_level == "Low Support":
+                takeaway = "High Friction / Heavy Lessons"
+            elif power_level in ["Very Strong", "Strong"] and intent_level in ["Auspicious", "Neutral"] and terrain_level == "Low Support":
+                takeaway = "High Drive / Lacks Resources"
+            elif power_level == "Weak" and intent_level == "Challenging" and terrain_level == "Low Support":
+                takeaway = "Suppressed / Significant Blockage"
+            else:
+                takeaway = "Mixed / Standard Operations"
+
+            # Check if planet passes required minimum Shadbala
+            passed = total_shadbala >= req_min
+
+            synthesis_data[name] = {
+                "shadbala": {
+                    "total": round(total_shadbala, 4),
+                    "required": req_min,
+                    "level": power_level,
+                    "passed": passed
+                },
+                "dignity": {
+                    "value": dignity,
+                    "level": intent_level
+                },
+                "ashtakavarga": {
+                    "bindus": bindus,
+                    "level": terrain_level,
+                    "sign": sign_name
+                },
+                "takeaway": takeaway
+            }
+            
+        return synthesis_data
+
+

@@ -431,6 +431,7 @@
             <nav aria-label="Report Section Navigation">
                 <ul class="tabs-list" role="tablist">
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-planets" id="btn-planets">Planets</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-synthesis" id="btn-synthesis">Planetary Synthesis</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-friendships" id="btn-friendships">Planetary Friendships</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-yogas" id="btn-yogas">Vedic Yogas</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-dashas" id="btn-dashas">Vimshottari Dasha</button></li>
@@ -472,6 +473,63 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Planetary Synthesis -->
+                <div class="tab-content" id="tab-synthesis" role="tabpanel" aria-labelledby="btn-synthesis" tabindex="0" hidden>
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">Planetary Synthesis (Power, Intent & Terrain)</h2>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                        {% for name, s in chart.planetary_synthesis.items() %}
+                            {# Set badge classes and colors #}
+                            {% set power_badge = "color: var(--green); background-color: rgba(46, 204, 113, 0.1);" if s.shadbala.passed else "color: var(--gold); background-color: rgba(243, 198, 63, 0.1);" %}
+                            
+                            {% set dignity_badge = "color: var(--green); background-color: rgba(46, 204, 113, 0.1);" if s.dignity.level == "Auspicious" else ("color: var(--text-muted); background-color: rgba(255, 255, 255, 0.05);" if s.dignity.level == "Neutral" else "color: #e74c3c; background-color: rgba(231, 76, 60, 0.1);") %}
+                            
+                            {% set terrain_badge = "color: var(--green); background-color: rgba(46, 204, 113, 0.1);" if s.ashtakavarga.level == "High Support" else ("color: var(--text-muted); background-color: rgba(255, 255, 255, 0.05);" if s.ashtakavarga.level == "Neutral" else "color: #e74c3c; background-color: rgba(231, 76, 60, 0.1);") %}
+                            
+                            {% set takeaway_style = "border-left: 4px solid var(--green);" if s.takeaway in ["Maximum Manifestation (Prime)", "High Output / Smooth Manifestation"] else ("border-left: 4px solid var(--gold);" if s.takeaway in ["Easy Flow / Gentle Support", "Mixed / Standard Operations"] else "border-left: 4px solid #e74c3c;") %}
+                            
+                            <div class="yoga-card" style="display: flex; flex-direction: column; justify-content: space-between; {{ takeaway_style }}">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                        <h3 style="font-family: 'Cinzel', serif; font-size: 1.3rem; color: var(--gold); margin: 0;">{{ name }}</h3>
+                                        <span style="font-size: 0.85rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 4px; {{ power_badge }}">
+                                            Shadbala: {{ s.shadbala.level }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.95rem; line-height: 1.4;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="color: var(--text-muted);">Horsepower (Shadbala):</span>
+                                            <span><strong>{{ s.shadbala.total }}</strong> / {{ s.shadbala.required }} min</span>
+                                        </div>
+                                        
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="color: var(--text-muted);">Fuel/Intent (Dignity):</span>
+                                            <span style="font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; {{ dignity_badge }}">
+                                                {{ s.dignity.value }} ({{ s.dignity.level }})
+                                            </span>
+                                        </div>
+                                        
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span style="color: var(--text-muted);">Terrain (Ashtakavarga):</span>
+                                            <span style="font-size: 0.85rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; {{ terrain_badge }}">
+                                                {{ s.ashtakavarga.bindus }} Bindus (in {{ s.ashtakavarga.sign }})
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                    <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 0.25rem;"> Takeaway Synthesis </div>
+                                    <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-color);">
+                                        {{ s.takeaway }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
                 </div>
 
