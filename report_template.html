@@ -436,6 +436,7 @@
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-dashas" id="btn-dashas">Vimshottari Dasha</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-ashtakavarga" id="btn-ashtakavarga">Ashtakavarga</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-transits" id="btn-transits">Gochara Transits</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-shadbala" id="btn-shadbala">Shadbala</button></li>
                 </ul>
             </nav>
 
@@ -657,6 +658,82 @@
                                         <td>{{ t.house_from_moon | default('-') }}</td>
                                         <td>{{ status }}</td>
                                     </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Shadbala -->
+                <div class="tab-content" id="tab-shadbala" role="tabpanel" aria-labelledby="btn-shadbala" tabindex="0" hidden>
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Shadbala Calculations (Planetary Strengths)</h2>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Planet</th>
+                                    <th scope="col">Sthana Bala</th>
+                                    <th scope="col">Dig Bala</th>
+                                    <th scope="col">Kala Bala</th>
+                                    <th scope="col">Cheshta Bala</th>
+                                    <th scope="col">Naisargika Bala</th>
+                                    <th scope="col">Drik Bala</th>
+                                    <th scope="col">Total Strength</th>
+                                    <th scope="col">Required Min</th>
+                                    <th scope="col">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in chart.planets %}
+                                    {% if p.name in ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"] %}
+                                        {# Set minimum required values #}
+                                        {% if p.name == "Sun" %}
+                                            {% set req = 390.0 %}
+                                        {% elif p.name == "Moon" %}
+                                            {% set req = 360.0 %}
+                                        {% elif p.name == "Mars" %}
+                                            {% set req = 300.0 %}
+                                        {% elif p.name == "Mercury" %}
+                                            {% set req = 420.0 %}
+                                        {% elif p.name == "Jupiter" %}
+                                            {% set req = 390.0 %}
+                                        {% elif p.name == "Venus" %}
+                                            {% set req = 330.0 %}
+                                        {% elif p.name == "Saturn" %}
+                                            {% set req = 300.0 %}
+                                        {% else %}
+                                            {% set req = 0.0 %}
+                                        {% endif %}
+                                        
+                                        {% set total = p.shadbala.shadbala_total | default(0.0) | float %}
+                                        {% set status = "🟢 Meets Requirement" if total >= req else "🔴 Deficient" %}
+                                        
+                                        <tr>
+                                            <th scope="row">{{ p.name }}</th>
+                                            <td>
+                                                <strong>{{ p.shadbala.sthana_bala.sthana_bala_total | default('-') }}</strong>
+                                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                                    Ucca: {{ p.shadbala.sthana_bala.ucca_bala | default('-') }}<br>
+                                                    Kendra: {{ p.shadbala.sthana_bala.kendra_bala | default('-') }}<br>
+                                                    Sapta: {{ p.shadbala.sthana_bala.saptavargiya_bala | default('-') }}
+                                                </div>
+                                            </td>
+                                            <td>{{ p.shadbala.dig_bala | default('-') }}</td>
+                                            <td>
+                                                <strong>{{ p.shadbala.kala_bala.kala_bala_total | default('-') }}</strong>
+                                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                                    Diva/Ratri: {{ p.shadbala.kala_bala.divaratri_bala | default('-') }}<br>
+                                                    Paksha: {{ p.shadbala.kala_bala.paksha_bala | default('-') }}
+                                                </div>
+                                            </td>
+                                            <td>{{ p.shadbala.cheshta_bala | default('-') }}</td>
+                                            <td>{{ p.shadbala.naisargika_bala | default('-') }}</td>
+                                            <td>{{ p.shadbala.drik_bala | default('-') }}</td>
+                                            <td><strong>{{ total }}</strong></td>
+                                            <td>{{ req }}</td>
+                                            <td style="font-weight: 600;">{{ status }}</td>
+                                        </tr>
+                                    {% endif %}
                                 {% endfor %}
                             </tbody>
                         </table>
