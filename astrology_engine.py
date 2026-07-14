@@ -1770,3 +1770,185 @@ class PlanetarySynthesisEngine:
         return synthesis_data
 
 
+# --- 11. ASPECT ENGINE ---
+class AspectEngine:
+    CLASSICAL_PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
+    
+    @classmethod
+    def calculate_aspects(cls, chart, mode):
+        """
+        Calculates Parashari, Jaimini, and Tajika aspects between all classical planets.
+        """
+        is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        
+        parashari = {}
+        jaimini = {}
+        tajika = {}
+        
+        # Initialize dictionaries
+        for name in cls.CLASSICAL_PLANETS:
+            parashari[name] = []
+            jaimini[name] = []
+            tajika[name] = []
+            
+        # 1. Parashari aspects (Graha Drishti)
+        for p1 in cls.CLASSICAL_PLANETS:
+            if p1 not in chart:
+                continue
+            obj1 = chart[p1]
+            h1 = obj1.vedic_house if is_sid else obj1.tropical_house
+            if not h1:
+                continue
+                
+            for p2 in cls.CLASSICAL_PLANETS:
+                if p1 == p2 or p2 not in chart:
+                    continue
+                obj2 = chart[p2]
+                h2 = obj2.vedic_house if is_sid else obj2.tropical_house
+                if not h2:
+                    continue
+                    
+                # Calculate house distance (inclusive, 0 to 11)
+                distance = (h2 - h1) % 12
+                
+                # Check aspect rules
+                has_aspect = False
+                aspect_type = ""
+                
+                # All planets aspect 7th house (distance = 6)
+                if distance == 6:
+                    has_aspect = True
+                    aspect_type = "7th House (Universal)"
+                    
+                # Special Mars aspects (4th and 8th house, distance = 3 and 7)
+                elif p1 == "Mars" and distance in [3, 7]:
+                    has_aspect = True
+                    aspect_type = f"{distance + 1}th House (Special)"
+                    
+                # Special Jupiter aspects (5th and 9th house, distance = 4 and 8)
+                elif p1 == "Jupiter" and distance in [4, 8]:
+                    has_aspect = True
+                    aspect_type = f"{distance + 1}th House (Special)"
+                    
+                # Special Saturn aspects (3rd and 10th house, distance = 2 and 9)
+                elif p1 == "Saturn" and distance in [2, 9]:
+                    has_aspect = True
+                    aspect_type = f"{distance + 1}th House (Special)"
+                    
+                if has_aspect:
+                    parashari[p1].append({
+                        "target": p2,
+                        "aspect": aspect_type,
+                        "distance": distance + 1
+                    })
+                    
+        # 2. Jaimini aspects (Rashi Drishti)
+        # Sign Categories: 0=Movable, 1=Fixed, 2=Dual
+        movable_signs = [0, 3, 6, 9]    # Aries, Cancer, Libra, Capricorn
+        fixed_signs = [1, 4, 7, 10]     # Taurus, Leo, Scorpio, Aquarius
+        dual_signs = [2, 5, 8, 11]      # Gemini, Virgo, Sagittarius, Pisces
+        
+        for p1 in cls.CLASSICAL_PLANETS:
+            if p1 not in chart:
+                continue
+            obj1 = chart[p1]
+            lon1 = obj1.sidereal_longitude if is_sid else obj1.tropical_longitude
+            s1 = int(lon1 // 30) % 12
+            
+            # Determine sign type
+            if s1 in movable_signs:
+                t1 = 0 # Movable
+            elif s1 in fixed_signs:
+                t1 = 1 # Fixed
+            else:
+                t1 = 2 # Dual
+                
+            for p2 in cls.CLASSICAL_PLANETS:
+                if p1 == p2 or p2 not in chart:
+                    continue
+                obj2 = chart[p2]
+                lon2 = obj2.sidereal_longitude if is_sid else obj2.tropical_longitude
+                s2 = int(lon2 // 30) % 12
+                
+                # Check sign type
+                if s2 in movable_signs:
+                    t2 = 0
+                elif s2 in fixed_signs:
+                    t2 = 1
+                else:
+                    t2 = 2
+                    
+                has_aspect = False
+                
+                # Dual aspects Dual
+                if t1 == 2 and t2 == 2:
+                    has_aspect = True
+                # Movable aspects Fixed except adjacent
+                elif t1 == 0 and t2 == 1:
+                    adjacent_signs = [(s1 - 1) % 12, (s1 + 1) % 12]
+                    if s2 not in adjacent_signs:
+                        has_aspect = True
+                # Fixed aspects Movable except adjacent
+                elif t1 == 1 and t2 == 0:
+                    adjacent_signs = [(s1 - 1) % 12, (s1 + 1) % 12]
+                    if s2 not in adjacent_signs:
+                        has_aspect = True
+                        
+                if has_aspect:
+                    jaimini[p1].append({
+                        "target": p2,
+                        "sign_from": AstroMath.ZODIAC_SIGNS[s1],
+                        "sign_to": AstroMath.ZODIAC_SIGNS[s2]
+                    })
+                    
+        # 3. Tajika aspects (Degree-based)
+        for p1 in cls.CLASSICAL_PLANETS:
+            if p1 not in chart:
+                continue
+            obj1 = chart[p1]
+            lon1 = obj1.sidereal_longitude if is_sid else obj1.tropical_longitude
+            
+            for p2 in cls.CLASSICAL_PLANETS:
+                if p1 == p2 or p2 not in chart:
+                    continue
+                obj2 = chart[p2]
+                lon2 = obj2.sidereal_longitude if is_sid else obj2.tropical_longitude
+                
+                diff = abs(lon1 - lon2) % 360
+                diff = min(diff, 360.0 - diff)
+                
+                aspects = {
+                    "Conjunction": 0.0,
+                    "Sextile": 60.0,
+                    "Square": 90.0,
+                    "Trine": 120.0,
+                    "Opposition": 180.0
+                }
+                
+                for asp_name, val in aspects.items():
+                    orb = abs(diff - val)
+                    if orb <= 6.0:
+                        # Tajika relationship category
+                        if asp_name in ["Sextile", "Trine"]:
+                            nature = "Friendly (Mitra)"
+                        elif asp_name in ["Square", "Opposition"]:
+                            nature = "Hostile (Shatru)"
+                        else:
+                            nature = "Neutral (Sama)"
+                            
+                        tajika[p1].append({
+                            "target": p2,
+                            "aspect": asp_name,
+                            "nature": nature,
+                            "orb": round(orb, 4),
+                            "angle": round(diff, 4)
+                        })
+                        break
+                        
+        return {
+            "parashari": parashari,
+            "jaimini": jaimini,
+            "tajika": tajika
+        }
+
+

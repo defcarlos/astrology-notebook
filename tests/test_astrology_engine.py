@@ -17,7 +17,8 @@ from astrology_engine import (
     AstroMath,
     JaiminiEngine,
     PanchangaEngine,
-    PlanetarySynthesisEngine
+    PlanetarySynthesisEngine,
+    AspectEngine
 )
 
 # Configure Swiss Ephemeris path
@@ -61,7 +62,10 @@ def calculate_chart_profile(year, month, day, time_str, tz, lat, lon, mode="Trop
     # 8. Calculate Planetary Synthesis
     synthesis = PlanetarySynthesisEngine.calculate_synthesis(chart, local_sky, mode)
     
-    return chart, local_sky, yogas, ashtakavarga, jaimini_karakas, panchanga, synthesis
+    # 9. Calculate Aspects
+    aspects = AspectEngine.calculate_aspects(chart, mode)
+    
+    return chart, local_sky, yogas, ashtakavarga, jaimini_karakas, panchanga, synthesis, aspects
 
 class TestAstrologyEngine(unittest.TestCase):
 
@@ -70,7 +74,7 @@ class TestAstrologyEngine(unittest.TestCase):
         Verify Steve Jobs chart in Tropical-Vedic mode.
         """
         # Steve Jobs: Feb 24, 1955 at 19:15, San Francisco, CA
-        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
             year=1955, month=2, day=24, time_str="19:15", tz="America/Los_Angeles",
             lat=37.7749, lon=-122.4194, mode="Tropical-Vedic"
         )
@@ -134,12 +138,30 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertEqual(synthesis["Sun"]["ashtakavarga"]["level"], "Low Support")
         self.assertEqual(synthesis["Sun"]["takeaway"], "High Drive / Lacks Resources")
 
+        # --- Phase 1: Planetary Aspects Verification ---
+        # Parashari: Mars aspects Jupiter (4th House) and Saturn (8th House)
+        mars_parashari = aspects["parashari"]["Mars"]
+        mars_targets = [x["target"] for x in mars_parashari]
+        self.assertIn("Jupiter", mars_targets)
+        self.assertIn("Saturn", mars_targets)
+        
+        # Jaimini: Moon (Aries) aspects Mercury (Aquarius)
+        moon_jaimini = aspects["jaimini"]["Moon"]
+        moon_targets = [x["target"] for x in moon_jaimini]
+        self.assertIn("Mercury", moon_targets)
+        
+        # Tajika: Venus aspects Saturn via Sextile (orb < 0.1)
+        venus_tajika = aspects["tajika"]["Venus"]
+        saturn_aspect = [x for x in venus_tajika if x["target"] == "Saturn"][0]
+        self.assertEqual(saturn_aspect["aspect"], "Sextile")
+        self.assertLess(saturn_aspect["orb"], 0.1)
+
     def test_albert_einstein_sidereal(self):
         """
         Verify Albert Einstein chart in Sidereal (Everything) mode.
         """
         # Albert Einstein: Mar 14, 1879, 11:30 AM, Ulm, Germany
-        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
             year=1879, month=3, day=14, time_str="11:30", tz="Europe/Berlin",
             lat=48.4011, lon=9.9876, mode="Everything"
         )
@@ -194,12 +216,24 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertEqual(synthesis["Venus"]["ashtakavarga"]["level"], "Low Support")
         self.assertEqual(synthesis["Venus"]["takeaway"], "High Drive / Lacks Resources")
 
+        # --- Phase 1: Planetary Aspects Verification ---
+        # Jaimini: Mars (Capricorn) aspects Moon (Scorpio)
+        mars_jaimini = aspects["jaimini"]["Mars"]
+        mars_targets = [x["target"] for x in mars_jaimini]
+        self.assertIn("Moon", mars_targets)
+        
+        # Tajika: Venus aspects Moon via Trine
+        venus_tajika = aspects["tajika"]["Venus"]
+        moon_aspect = [x for x in venus_tajika if x["target"] == "Moon"][0]
+        self.assertEqual(moon_aspect["aspect"], "Trine")
+        self.assertLess(moon_aspect["orb"], 3.0)
+
     def test_barack_obama_sidereal(self):
         """
         Verify Barack Obama chart in Sidereal (Everything) mode.
         """
         # Barack Obama: Aug 4, 1961, 19:24, Honolulu, HI
-        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
             year=1961, month=8, day=4, time_str="19:24", tz="Pacific/Honolulu",
             lat=21.3069, lon=-157.8583, mode="Everything"
         )
@@ -227,7 +261,7 @@ class TestAstrologyEngine(unittest.TestCase):
         """
         # Mahatma Gandhi: Oct 2, 1869, 07:12 AM, Porbandar, India
         # A timezone of 4.6533 accounts for the local mean time of the location
-        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis = calculate_chart_profile(
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
             year=1869, month=10, day=2, time_str="07:12", tz=4.6533,
             lat=21.6407, lon=69.6006, mode="Everything"
         )

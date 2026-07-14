@@ -433,6 +433,7 @@
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-planets" id="btn-planets">Planets</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-synthesis" id="btn-synthesis">Planetary Synthesis</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-jaimini" id="btn-jaimini">Jaimini</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-aspects" id="btn-aspects">Planetary Aspects</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-friendships" id="btn-friendships">Planetary Friendships</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-yogas" id="btn-yogas">Vedic Yogas</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-dashas" id="btn-dashas">Vimshottari Dasha</button></li>
@@ -598,6 +599,131 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+
+                <!-- Tab: Planetary Aspects -->
+                <div class="tab-content" id="tab-aspects" role="tabpanel" aria-labelledby="btn-aspects" tabindex="0" hidden>
+                    <!-- Sub-tabs navigation -->
+                    <div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1.5rem;">
+                        <button class="filter-btn active" id="btn-sub-parashari" onclick="showAspectSystem('parashari')">Parashari (Graha Drishti)</button>
+                        <button class="filter-btn" id="btn-sub-jaimini" onclick="showAspectSystem('jaimini')">Jaimini (Rashi Drishti)</button>
+                        <button class="filter-btn" id="btn-sub-tajika" onclick="showAspectSystem('tajika')">Tajika (Degree-Based)</button>
+                    </div>
+
+                    <!-- Sub-Tab: Parashari -->
+                    <div id="sub-aspects-parashari" class="sub-aspect-content">
+                        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem; font-style: italic;">
+                            Graha Drishti: Planets aspect entire houses based on their position. All planets aspect the 7th house from themselves. Mars (4th/8th), Jupiter (5th/9th), and Saturn (3rd/10th) have special aspects.
+                        </p>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th scope="col" style="width: 25%;">Aspecting Planet</th>
+                                        <th scope="col">Aspected Planet & Specific Aspect</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in classical_planets %}
+                                        {% set asp_list = chart.planetary_aspects.parashari.get(p, []) %}
+                                        <tr>
+                                            <th scope="row"><strong>{{ p }}</strong></th>
+                                            <td>
+                                                {% if asp_list %}
+                                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                                        {% for a in asp_list %}
+                                                            <span style="background-color: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+                                                                <strong>{{ a.target }}</strong> ({{ a.aspect }})
+                                                            </span>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    <span style="color: var(--text-muted); font-style: italic;">No aspected planets</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Tab: Jaimini -->
+                    <div id="sub-aspects-jaimini" class="sub-aspect-content" style="display: none;">
+                        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem; font-style: italic;">
+                            Rashi Drishti: Sign-to-sign aspects. Movable signs aspect Fixed signs (except adjacent). Fixed signs aspect Movable signs (except adjacent). Dual signs aspect all other Dual signs.
+                        </p>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th scope="col" style="width: 25%;">Aspecting Planet</th>
+                                        <th scope="col">Aspected Planet (Sign connection)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in classical_planets %}
+                                        {% set asp_list = chart.planetary_aspects.jaimini.get(p, []) %}
+                                        <tr>
+                                            <th scope="row"><strong>{{ p }}</strong></th>
+                                            <td>
+                                                {% if asp_list %}
+                                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                                        {% for a in asp_list %}
+                                                            <span style="background-color: rgba(168, 85, 247, 0.1); border: 1px solid var(--purple); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.9rem; color: #d8b4fe;">
+                                                                <strong>{{ a.target }}</strong> ({{ a.sign_from }} → {{ a.sign_to }})
+                                                            </span>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    <span style="color: var(--text-muted); font-style: italic;">No aspected planets</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Tab: Tajika -->
+                    <div id="sub-aspects-tajika" class="sub-aspect-content" style="display: none;">
+                        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem; font-style: italic;">
+                            Tajika Aspects: Degree-based angular aspects (Conjunction 0°, Sextile 60°, Square 90°, Trine 120°, Opposition 180°) calculated within a 6° orb.
+                        </p>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th scope="col" style="width: 25%;">Planet</th>
+                                        <th scope="col">Tajika Aspect Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in classical_planets %}
+                                        {% set asp_list = chart.planetary_aspects.tajika.get(p, []) %}
+                                        <tr>
+                                            <th scope="row"><strong>{{ p }}</strong></th>
+                                            <td>
+                                                {% if asp_list %}
+                                                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                                        {% for a in asp_list %}
+                                                            {% set badge_color = "color: var(--green); border-color: var(--green); background-color: rgba(46, 204, 113, 0.05);" if a.nature.startswith("Friendly") else ("color: #e74c3c; border-color: #e74c3c; background-color: rgba(231, 76, 60, 0.05);" if a.nature.startswith("Hostile") else "color: var(--text-color); border-color: var(--border-color); background-color: rgba(255, 255, 255, 0.02);") %}
+                                                            <span style="border: 1px solid; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.9rem; {{ badge_color }}">
+                                                                <strong>{{ a.target }}</strong>: {{ a.aspect }} ({{ a.orb }}° orb, {{ a.nature.split(' ')[0] }})
+                                                            </span>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    <span style="color: var(--text-muted); font-style: italic;">No degree aspects within 6° orb</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -947,6 +1073,18 @@
                 }
             });
         }
+        // Sub-aspect systems toggle
+        window.showAspectSystem = function(system) {
+            document.querySelectorAll('.sub-aspect-content').forEach(el => {
+                el.style.display = 'none';
+            });
+            document.getElementById('sub-aspects-' + system).style.display = 'block';
+            
+            document.querySelectorAll('[id^="btn-sub-"]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('btn-sub-' + system).classList.add('active');
+        };
     </script>
 </body>
 </html>
