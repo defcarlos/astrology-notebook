@@ -432,6 +432,7 @@
                 <ul class="tabs-list" role="tablist">
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-planets" id="btn-planets">Planets</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-synthesis" id="btn-synthesis">Planetary Synthesis</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-jaimini" id="btn-jaimini">Jaimini</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-friendships" id="btn-friendships">Planetary Friendships</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-yogas" id="btn-yogas">Vedic Yogas</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-dashas" id="btn-dashas">Vimshottari Dasha</button></li>
@@ -493,8 +494,14 @@
                             
                             <div class="yoga-card" style="display: flex; flex-direction: column; justify-content: space-between; {{ takeaway_style }}">
                                 <div>
+                                    {% set jaimini = chart.jaimini_karakas.get(name) %}
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                        <h3 style="font-family: 'Cinzel', serif; font-size: 1.3rem; color: var(--gold); margin: 0;">{{ name }}</h3>
+                                        <div style="display: flex; flex-direction: column;">
+                                            <h3 style="font-family: 'Cinzel', serif; font-size: 1.3rem; color: var(--gold); margin: 0;">{{ name }}</h3>
+                                            {% if jaimini %}
+                                                <span style="font-size: 0.8rem; color: var(--purple); font-weight: 500; margin-top: 0.15rem;">{{ jaimini.role.split(' ')[0] }}</span>
+                                            {% endif %}
+                                        </div>
                                         <span style="font-size: 0.85rem; font-weight: 600; padding: 0.25rem 0.5rem; border-radius: 4px; {{ power_badge }}">
                                             Shadbala: {{ s.shadbala.level }}
                                         </span>
@@ -530,6 +537,67 @@
                                 </div>
                             </div>
                         {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Tab: Jaimini -->
+                <div class="tab-content" id="tab-jaimini" role="tabpanel" aria-labelledby="btn-jaimini" tabindex="0" hidden>
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;">Jaimini Chara Karakas (Planetary Significators)</h2>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Karaka Role</th>
+                                    <th scope="col">Significator Planet</th>
+                                    <th scope="col">Degree in Sign</th>
+                                    <th scope="col">Zodiac Sign</th>
+                                    <th scope="col">House Placement</th>
+                                    <th scope="col">Role Significance / Interpretation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for name, k in chart.jaimini_karakas.items() %}
+                                    {# Find the planet object in chart.planets to get its sign and house #}
+                                    {% set p_obj = none %}
+                                    {% for p in chart.planets %}
+                                        {% if p.name == name %}
+                                            {% set p_obj = p %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% set is_sid = false if mode in ["Tropical-Vedic", "Tropical Focus"] else true %}
+                                    {% set p_sign = p_obj.tropical_sign if not is_sid else p_obj.sidereal_sign %}
+                                    {% set p_house = p_obj.tropical_house if not is_sid else p_obj.vedic_house %}
+                                    
+                                    {% if k.role == "Atmakaraka (Self/Soul)" %}
+                                        {% set desc = "The king of the chart. Represents the soul, core self, ego, spiritual growth, and primary life lessons." %}
+                                    {% elif k.role == "Amatyakaraka (Career/Profession)" %}
+                                        {% set desc = "The advisor or minister. Represents career, profession, work environment, intellect, and professional guides." %}
+                                    {% elif k.role == "Bhratrukaraka (Siblings/Guru)" %}
+                                        {% set desc = "The brotherly helper. Represents siblings, father figure, spiritual guru, guides, and close mentors." %}
+                                    {% elif k.role == "Matrukaraka (Mother)" %}
+                                        {% set desc = "The maternal caregiver. Represents mother, home environment, emotional happiness, vehicles, and early upbringing." %}
+                                    {% elif k.role == "Putrakaraka (Children/Education)" %}
+                                        {% set desc = "The creative seed. Represents children, higher education, creativity, intelligence, and legacy/followers." %}
+                                    {% elif k.role == "Jnatikaraka (Relatives/Obstacles)" %}
+                                        {% set desc = "The obstacle resolver. Represents cousins, relatives, health struggles, debts, challenges, and resolving karmic disputes." %}
+                                    {% elif k.role == "Darakaraka (Spouse/Partners)" %}
+                                        {% set desc = "The companion. Represents spouse, life partner, business partnerships, physical relationship, and long-term commitments." %}
+                                    {% else %}
+                                        {% set desc = "General significator." %}
+                                    {% endif %}
+                                    
+                                    <tr>
+                                        <th scope="row"><strong>{{ k.role }}</strong></th>
+                                        <td>{{ name }}</td>
+                                        <td>{{ k.degree }}°</td>
+                                        <td>{{ p_sign | default('-') }}</td>
+                                        <td>House {{ p_house | default('-') }}</td>
+                                        <td>{{ desc }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
