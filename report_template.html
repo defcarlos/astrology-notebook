@@ -434,6 +434,7 @@
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-synthesis" id="btn-synthesis">Planetary Synthesis</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-jaimini" id="btn-jaimini">Jaimini</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-aspects" id="btn-aspects">Planetary Aspects</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-sudarshana" id="btn-sudarshana">Sudarshana Chakra</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-friendships" id="btn-friendships">Planetary Friendships</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-yogas" id="btn-yogas">Vedic Yogas</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-dashas" id="btn-dashas">Vimshottari Dasha</button></li>
@@ -723,6 +724,46 @@
                                     {% endfor %}
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Sudarshana Chakra -->
+                <div class="tab-content" id="tab-sudarshana" role="tabpanel" aria-labelledby="btn-sudarshana" tabindex="0" hidden>
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">Sudarshana Chakra (Concentric Tri-Wheel)</h2>
+                    
+                    <div class="sudarshana-layout" style="display: grid; grid-template-columns: minmax(300px, 450px) 1fr; gap: 2rem; align-items: start;">
+                        <!-- SVG Display Column -->
+                        <div class="yoga-card" style="padding: 1.5rem; background: rgba(30, 32, 66, 0.4); border: 1px solid var(--border-color); border-radius: 8px; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                            <div style="width: 100%; max-width: 400px; aspect-ratio: 1/1;">
+                                {{ sudarshana_chakra_svg | safe }}
+                            </div>
+                        </div>
+                        
+                        <!-- Interpretation Column -->
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div class="yoga-card" style="padding: 1.5rem; background: rgba(30, 32, 66, 0.4); border: 1px solid var(--border-color); border-radius: 8px;">
+                                <h3 style="font-family: 'Cinzel', serif; font-size: 1.25rem; color: var(--gold); margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">Holistic Tri-Wheel Synthesis</h3>
+                                <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-color); margin-bottom: 0.75rem;">
+                                    The **Sudarshana Chakra** is a classical Vedic concentric tri-wheel chart overlaying three key perspectives of the psyche. The 1st house of all three charts is aligned at the top (12 o'clock position) to scan matching sectors instantly:
+                                </p>
+                                <ul style="margin-left: 1.25rem; list-style-type: square; font-size: 0.9rem; line-height: 1.6; color: var(--text-color); display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <li><strong>Outer Ring: Udaya Lagna (Ascendant)</strong> – The physical body, environment, and concrete circumstances of earthly life.</li>
+                                    <li><strong>Middle Ring: Chandra Lagna (Moon)</strong> – The mental, emotional, and psychological experiences of the individual.</li>
+                                    <li><strong>Inner Ring: Surya Lagna (Sun)</strong> – The soul's spiritual journey, core vitality, and divine alignment.</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="yoga-card" style="padding: 1.5rem; background: rgba(30, 32, 66, 0.4); border: 1px solid var(--border-color); border-radius: 8px;">
+                                <h3 style="font-family: 'Cinzel', serif; font-size: 1.25rem; color: var(--gold); margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">How to Interpret</h3>
+                                <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-muted);">
+                                    Compare the conditions of specific houses (1 through 12) across the rings:
+                                </p>
+                                <ul style="margin-left: 1.25rem; list-style-type: disc; font-size: 0.9rem; line-height: 1.6; color: var(--text-color); display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <li><strong>Tri-Ring Alignment</strong>: When a house is occupied by benefics or receives strong aspects in all three rings, that area of life manifests with extreme ease and harmony.</li>
+                                    <li><strong>Divergent Paths</strong>: When a house is strong in one ring but weak/afflicted in another, it indicates tension. For example, a strong house in Udaya Lagna (physical success) with an afflicted placement in Chandra Lagna (emotional stress) signifies material gain accompanied by inner anxiety.</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

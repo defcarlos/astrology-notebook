@@ -156,6 +156,19 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertEqual(saturn_aspect["aspect"], "Sextile")
         self.assertLess(saturn_aspect["orb"], 0.1)
 
+        # --- HTMLReporter SVG Verification ---
+        from astrology_engine import HTMLReporter
+        import os
+        json_path = os.path.join(ROOT_DIR, "knowledge_base", "steve_jobs", "steve_jobs_astrology_profile.json")
+        template_path = os.path.join(ROOT_DIR, "report_template.html")
+        if os.path.exists(json_path):
+            reporter = HTMLReporter(json_path, template_path)
+            sudarshana_svg = reporter.generate_sudarshana_chakra_svg()
+            self.assertIn("Sudarshana Chakra Tri-Wheel Chart", sudarshana_svg)
+            self.assertIn("<svg", sudarshana_svg)
+            self.assertIn("</svg>", sudarshana_svg)
+            self.assertIn("SUDARSHANA", sudarshana_svg)
+
     def test_albert_einstein_sidereal(self):
         """
         Verify Albert Einstein chart in Sidereal (Everything) mode.

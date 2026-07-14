@@ -1482,6 +1482,145 @@ class HTMLReporter:
         svg += '</svg>'
         return svg
 
+    def generate_sudarshana_chakra_svg(self):
+        import math
+        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        
+        # 1. Retrieve the base signs for Udaya (Lagna), Chandra (Moon), and Surya (Sun)
+        asc_sign = self.chart.get('ascendant', {}).get('tropical_sign') if not is_sid else self.chart.get('ascendant', {}).get('sidereal_sign')
+        
+        # Find Moon sign
+        moon_sign = "Aries"
+        for p in self.chart.get('planets', []):
+            if p['name'] == "Moon":
+                moon_sign = p.get('tropical_sign') if not is_sid else p.get('sidereal_sign')
+                break
+                
+        # Find Sun sign
+        sun_sign = "Aries"
+        for p in self.chart.get('planets', []):
+            if p['name'] == "Sun":
+                sun_sign = p.get('tropical_sign') if not is_sid else p.get('sidereal_sign')
+                break
+                
+        # Get 0-based sign indexes
+        asc_sign_idx = AstroMath.ZODIAC_SIGNS.index(asc_sign) if asc_sign in AstroMath.ZODIAC_SIGNS else 0
+        moon_sign_idx = AstroMath.ZODIAC_SIGNS.index(moon_sign) if moon_sign in AstroMath.ZODIAC_SIGNS else 0
+        sun_sign_idx = AstroMath.ZODIAC_SIGNS.index(sun_sign) if sun_sign in AstroMath.ZODIAC_SIGNS else 0
+        
+        # 2. Build the houses layout for the three concentric rings
+        p_abbr = {"Sun": "SU", "Moon": "MO", "Mars": "MA", "Mercury": "ME", "Jupiter": "JU", "Venus": "VE", "Saturn": "SA", "Rahu": "RA", "Ketu": "KE"}
+        sign_abbreviations = ["ARI", "TAU", "GEM", "CAN", "LEO", "VIR", "LIB", "SCO", "SAG", "CAP", "AQU", "PIS"]
+        
+        cx, cy = 200, 200
+        
+        # Start constructing SVG
+        svg = '<svg viewBox="0 0 400 400" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-labelledby="sudarshana-chart-title" role="img">\n'
+        svg += '  <title id="sudarshana-chart-title">Sudarshana Chakra Tri-Wheel Chart</title>\n'
+        svg += '  <desc>A concentric 3-ring circular chart aligning houses from Sun (inner), Moon (middle), and Ascendant (outer). Aligned counter-clockwise starting from House 1 at the top.</desc>\n'
+        
+        # Background
+        svg += '  <rect width="400" height="400" fill="#161730" stroke="#2e305c" stroke-width="3"/>\n'
+        
+        # Draw Concentric Circles
+        svg += f'  <circle cx="{cx}" cy="{cy}" r="195" fill="none" stroke="#2e305c" stroke-width="2"/>\n'
+        svg += f'  <circle cx="{cx}" cy="{cy}" r="150" fill="none" stroke="#2e305c" stroke-width="1.5"/>\n'
+        svg += f'  <circle cx="{cx}" cy="{cy}" r="105" fill="none" stroke="#2e305c" stroke-width="1.5"/>\n'
+        svg += f'  <circle cx="{cx}" cy="{cy}" r="60" fill="#0c0d21" stroke="#2e305c" stroke-width="2"/>\n'
+        
+        # Center text labels
+        svg += f'  <text x="{cx}" y="{cy-8}" fill="#f3c63f" font-family="Cinzel" font-size="10" text-anchor="middle" font-weight="bold">SUDARSHANA</text>\n'
+        svg += f'  <text x="{cx}" y="{cy+8}" fill="#f3c63f" font-family="Cinzel" font-size="10" text-anchor="middle" font-weight="bold">CHAKRA</text>\n'
+        
+        # Helper to convert polar to cartesian
+        def pt(r, deg):
+            rad = math.radians(deg)
+            x = cx + r * math.cos(rad)
+            y = cy + r * math.sin(rad)
+            return round(x, 2), round(y, 2)
+            
+        # Draw 12 Sector Dividers from r=60 to r=195
+        for h in range(1, 13):
+            angle = -90 - (h - 1) * 30
+            x1, y1 = pt(60, angle)
+            x2, y2 = pt(195, angle)
+            svg += f'  <line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#2e305c" stroke-width="1.5"/>\n'
+            
+        # Place house labels and data in each house sector
+        for h in range(1, 13):
+            # Mid-angle of the sector in degrees
+            angle = -90 - (h - 0.5) * 30
+            
+            # --- Outer Ring: Udaya Lagna (Ascendant) ---
+            outer_sign_idx = (asc_sign_idx + h - 1) % 12
+            outer_sign_name = sign_abbreviations[outer_sign_idx]
+            
+            # Draw Sign Name at r=182
+            sx, sy = pt(182, angle)
+            svg += f'  <text x="{sx}" y="{sy}" fill="#a5a7cc" font-family="Outfit" font-size="7" text-anchor="middle" font-weight="600">{outer_sign_name}</text>\n'
+            
+            # Find planets in this sign
+            outer_planets = []
+            for p in self.chart.get('planets', []):
+                p_sign = p.get('tropical_sign') if not is_sid else p.get('sidereal_sign')
+                if p_sign == AstroMath.ZODIAC_SIGNS[outer_sign_idx]:
+                    outer_planets.append(p_abbr.get(p['name'], p['name'][:2].upper()))
+            if h == 1:
+                outer_planets.insert(0, "ASC")
+                
+            # Draw Planets at r=162
+            if outer_planets:
+                px, py = pt(162, angle)
+                fill_color = "#00f2fe" if "ASC" in outer_planets else "#f1f1f5"
+                svg += f'  <text x="{px}" y="{py}" fill="{fill_color}" font-family="Outfit" font-size="8.5" text-anchor="middle" font-weight="bold">{",".join(outer_planets)}</text>\n'
+                
+            # --- Middle Ring: Chandra Lagna (Moon) ---
+            mid_sign_idx = (moon_sign_idx + h - 1) % 12
+            mid_sign_name = sign_abbreviations[mid_sign_idx]
+            
+            # Draw Sign Name at r=137
+            sx, sy = pt(137, angle)
+            svg += f'  <text x="{sx}" y="{sy}" fill="#a5a7cc" font-family="Outfit" font-size="7" text-anchor="middle" font-weight="600">{mid_sign_name}</text>\n'
+            
+            # Find planets in this sign
+            mid_planets = []
+            for p in self.chart.get('planets', []):
+                p_sign = p.get('tropical_sign') if not is_sid else p.get('sidereal_sign')
+                if p_sign == AstroMath.ZODIAC_SIGNS[mid_sign_idx]:
+                    mid_planets.append(p_abbr.get(p['name'], p['name'][:2].upper()))
+            
+            # Draw Planets at r=118
+            if mid_planets:
+                px, py = pt(118, angle)
+                svg += f'  <text x="{px}" y="{py}" fill="#f1f1f5" font-family="Outfit" font-size="8.5" text-anchor="middle" font-weight="bold">{",".join(mid_planets)}</text>\n'
+                
+            # --- Inner Ring: Surya Lagna (Sun) ---
+            inner_sign_idx = (sun_sign_idx + h - 1) % 12
+            inner_sign_name = sign_abbreviations[inner_sign_idx]
+            
+            # Draw Sign Name at r=92
+            sx, sy = pt(92, angle)
+            svg += f'  <text x="{sx}" y="{sy}" fill="#a5a7cc" font-family="Outfit" font-size="7" text-anchor="middle" font-weight="600">{inner_sign_name}</text>\n'
+            
+            # Find planets in this sign
+            inner_planets = []
+            for p in self.chart.get('planets', []):
+                p_sign = p.get('tropical_sign') if not is_sid else p.get('sidereal_sign')
+                if p_sign == AstroMath.ZODIAC_SIGNS[inner_sign_idx]:
+                    inner_planets.append(p_abbr.get(p['name'], p['name'][:2].upper()))
+                    
+            # Draw Planets at r=73
+            if inner_planets:
+                px, py = pt(73, angle)
+                svg += f'  <text x="{px}" y="{py}" fill="#f1f1f5" font-family="Outfit" font-size="8.5" text-anchor="middle" font-weight="bold">{",".join(inner_planets)}</text>\n'
+                
+            # Draw House Number indicators on the outermost ring edge
+            hx, hy = pt(208, angle)
+            svg += f'  <text x="{hx}" y="{hy}" fill="#f3c63f" font-family="Outfit" font-size="8" text-anchor="middle" font-weight="bold">H{h}</text>\n'
+            
+        svg += '</svg>'
+        return svg
+
     def compile_report(self, output_path):
         import datetime
         from jinja2 import Template
@@ -1504,6 +1643,7 @@ class HTMLReporter:
             friendships=self.data.get('planetary_friendships', {}),
             north_chart_svg=self.generate_north_chart_svg(),
             south_chart_svg=self.generate_south_chart_svg(),
+            sudarshana_chakra_svg=self.generate_sudarshana_chakra_svg(),
             today=datetime.datetime.now().strftime("%Y-%m-%d"),
             zodiac_signs=AstroMath.ZODIAC_SIGNS,
             classical_planets=["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"],
