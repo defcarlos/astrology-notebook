@@ -115,14 +115,19 @@
                         "value": 2
                     },
                     {
-                        "target": "AnyMaleficPlanet",
-                        "exclude": [
-                            "Rahu",
-                            "Ketu"
-                        ],
-                        "property": "relative_house_to_sun",
-                        "operator": "NOT_EQUALS",
-                        "value": 2
+                        "logical_operator": "NOT_EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyMaleficPlanet",
+                                "exclude": [
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
                     }
                 ]
             }
@@ -147,13 +152,18 @@
                         "value": 2
                     },
                     {
-                        "target": "AnyBeneficPlanet",
-                        "exclude": [
-                            "Moon"
-                        ],
-                        "property": "relative_house_to_sun",
-                        "operator": "NOT_EQUALS",
-                        "value": 2
+                        "logical_operator": "NOT_EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyBeneficPlanet",
+                                "exclude": [
+                                    "Moon"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 2
+                            }
+                        ]
                     }
                 ]
             }
@@ -208,14 +218,19 @@
                         "value": 12
                     },
                     {
-                        "target": "AnyMaleficPlanet",
-                        "exclude": [
-                            "Rahu",
-                            "Ketu"
-                        ],
-                        "property": "relative_house_to_sun",
-                        "operator": "NOT_EQUALS",
-                        "value": 12
+                        "logical_operator": "NOT_EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyMaleficPlanet",
+                                "exclude": [
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
                     }
                 ]
             }
@@ -240,13 +255,18 @@
                         "value": 12
                     },
                     {
-                        "target": "AnyBeneficPlanet",
-                        "exclude": [
-                            "Moon"
-                        ],
-                        "property": "relative_house_to_sun",
-                        "operator": "NOT_EQUALS",
-                        "value": 12
+                        "logical_operator": "NOT_EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyBeneficPlanet",
+                                "exclude": [
+                                    "Moon"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "EQUALS",
+                                "value": 12
+                            }
+                        ]
                     }
                 ]
             }
@@ -304,16 +324,21 @@
                         ]
                     },
                     {
-                        "target": "AnyMaleficPlanet",
-                        "exclude": [
-                            "Rahu",
-                            "Ketu"
-                        ],
-                        "property": "relative_house_to_sun",
-                        "operator": "NOT_IN",
-                        "value": [
-                            2,
-                            12
+                        "logical_operator": "NOT_EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyMaleficPlanet",
+                                "exclude": [
+                                    "Rahu",
+                                    "Ketu"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "IN",
+                                "value": [
+                                    2,
+                                    12
+                                ]
+                            }
                         ]
                     },
                     {
@@ -374,15 +399,20 @@
                         ]
                     },
                     {
-                        "target": "AnyBeneficPlanet",
-                        "exclude": [
-                            "Moon"
-                        ],
-                        "property": "relative_house_to_sun",
-                        "operator": "NOT_IN",
-                        "value": [
-                            2,
-                            12
+                        "logical_operator": "NOT_EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyBeneficPlanet",
+                                "exclude": [
+                                    "Moon"
+                                ],
+                                "property": "relative_house_to_sun",
+                                "operator": "IN",
+                                "value": [
+                                    2,
+                                    12
+                                ]
+                            }
                         ]
                     },
                     {

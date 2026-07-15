@@ -93,14 +93,19 @@
                         ]
                     },
                     {
-                        "target": "AllMaleficPlanets",
-                        "property": "relative_house_to_lagna",
-                        "operator": "NOT_IN",
-                        "value": [
-                            1,
-                            4,
-                            7,
-                            10
+                        "logical_operator": "NOT_EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyMaleficPlanet",
+                                "property": "relative_house_to_lagna",
+                                "operator": "IN",
+                                "value": [
+                                    1,
+                                    4,
+                                    7,
+                                    10
+                                ]
+                            }
                         ]
                     }
                 ]
@@ -127,14 +132,19 @@
                         ]
                     },
                     {
-                        "target": "AllBeneficPlanets",
-                        "property": "relative_house_to_lagna",
-                        "operator": "NOT_IN",
-                        "value": [
-                            1,
-                            4,
-                            7,
-                            10
+                        "logical_operator": "NOT_EXISTS",
+                        "conditions": [
+                            {
+                                "target": "AnyBeneficPlanet",
+                                "property": "relative_house_to_lagna",
+                                "operator": "IN",
+                                "value": [
+                                    1,
+                                    4,
+                                    7,
+                                    10
+                                ]
+                            }
                         ]
                     }
                 ]

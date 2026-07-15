@@ -1358,6 +1358,14 @@ class VimshottariDashaEngine:
         self.dasha_periods = dasha_periods
 
 class HTMLReporter:
+    NAKSHATRAS_28 = [
+        "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra", 
+        "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni", 
+        "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha", 
+        "Mula", "Purva Ashadha", "Uttara Ashadha", "Abhijit", "Shravana", "Dhanishta", 
+        "Shatabhisha", "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
+    ]
+
     def __init__(self, json_path, template_path):
         import json
         with open(json_path, 'r', encoding='utf-8') as f:
@@ -1621,6 +1629,272 @@ class HTMLReporter:
         svg += '</svg>'
         return svg
 
+    def _get_28_nakshatra(self, lon):
+        idx_27 = int(lon // (360.0 / 27.0))
+        if idx_27 < 20:
+            return idx_27
+        elif idx_27 == 20:
+            if lon < 276.6667:
+                return 20 # Uttara Ashadha
+            else:
+                return 21 # Abhijit
+        elif idx_27 == 21:
+            if lon < 280.8944:
+                return 21 # Abhijit
+            else:
+                return 22 # Shravana
+        else:
+            return idx_27 + 1
+
+    def generate_kota_chakra_svg(self):
+        import math
+        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        
+        # Find Moon nakshatra index
+        moon_lon = 0.0
+        for p in self.chart.get('planets', []):
+            if p['name'] == "Moon":
+                moon_lon = p.get('sidereal_longitude') if is_sid else p.get('tropical_longitude')
+                break
+        n_birth = self._get_28_nakshatra(moon_lon)
+        
+        p_abbr = {"Sun": "SU", "Moon": "MO", "Mars": "MA", "Mercury": "ME", "Jupiter": "JU", "Venus": "VE", "Saturn": "SA", "Rahu": "RA", "Ketu": "KE"}
+        
+        stambha_planets = []
+        madhya_planets = []
+        prakara_planets = []
+        bahya_planets = []
+        
+        for p in self.chart.get('planets', []):
+            lon = p.get('sidereal_longitude') if is_sid else p.get('tropical_longitude')
+            n_planet = self._get_28_nakshatra(lon)
+            rel = (n_planet - n_birth) % 28 + 1
+            
+            abbr = p_abbr.get(p['name'], p['name'][:2].upper())
+            if rel in [4, 11, 18, 25]:
+                stambha_planets.append(abbr)
+            elif rel in [3, 5, 10, 12, 17, 19, 24, 26]:
+                madhya_planets.append(abbr)
+            elif rel in [2, 6, 9, 13, 16, 20, 23, 27]:
+                prakara_planets.append(abbr)
+            else:
+                bahya_planets.append(abbr)
+                
+        # Draw SVG
+        svg = '<svg viewBox="0 0 400 400" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-labelledby="kota-chart-title" role="img">\n'
+        svg += '  <title id="kota-chart-title">Kota Chakra Fort Diagram</title>\n'
+        svg += '  <desc>A fortified castle layout showing planetary positions in concentric zones: Stambha (core), Madhya (inner middle), Prakara (boundary wall), and Bahya (outer).</desc>\n'
+        svg += '  <rect width="400" height="400" fill="#161730" stroke="#2e305c" stroke-width="3"/>\n'
+        
+        # Concentric squares
+        svg += '  <rect x="40" y="40" width="320" height="320" fill="none" stroke="#2e305c" stroke-width="2.5"/>\n' # Bahya
+        svg += '  <rect x="80" y="80" width="240" height="240" fill="none" stroke="#2e305c" stroke-dasharray="4,4"/>\n' # Prakara
+        svg += '  <rect x="120" y="120" width="160" height="160" fill="none" stroke="#3b3d75"/>\n' # Madhya
+        svg += '  <rect x="160" y="160" width="80" height="80" fill="#0d0e24" stroke="#f3c63f" stroke-width="1.5"/>\n' # Stambha (Center)
+        
+        # Connect diagonal paths (Entry)
+        svg += '  <line x1="40" y1="40" x2="360" y2="360" stroke="#2e305c" stroke-width="1.5" stroke-dasharray="2,2"/>\n'
+        svg += '  <line x1="40" y1="360" x2="360" y2="40" stroke="#2e305c" stroke-width="1.5" stroke-dasharray="2,2"/>\n'
+        
+        # Connect cardinal paths (Exit)
+        svg += '  <line x1="200" y1="40" x2="200" y2="360" stroke="#2e305c" stroke-width="1.5" stroke-dasharray="2,2"/>\n'
+        svg += '  <line x1="40" y1="200" x2="360" y2="200" stroke="#2e305c" stroke-width="1.5" stroke-dasharray="2,2"/>\n'
+        
+        # Labels for zones
+        svg += '  <text x="200" y="150" fill="#f3c63f" font-family="Outfit" font-size="8" text-anchor="middle" font-weight="bold">STAMBHA (PILLAR)</text>\n'
+        svg += '  <text x="200" y="110" fill="#a5a7cc" font-family="Outfit" font-size="8" text-anchor="middle">MADHYA</text>\n'
+        svg += '  <text x="200" y="70" fill="#a5a7cc" font-family="Outfit" font-size="8" text-anchor="middle">PRAKARA</text>\n'
+        svg += '  <text x="200" y="30" fill="#a5a7cc" font-family="Outfit" font-size="8" text-anchor="middle">BAHYA (OUTER)</text>\n'
+        
+        # Render planets distributed circular in each zone
+        def draw_planets_in_zone(planets, r_val, color_theme):
+            if not planets:
+                return ""
+            p_svg = ""
+            for idx, p_name in enumerate(planets):
+                ang = 45 + idx * (360.0 / len(planets))
+                rad = math.radians(ang)
+                px = 200 + r_val * math.cos(rad)
+                py = 205 + r_val * math.sin(rad)
+                p_svg += f'  <circle cx="{px}" cy="{py-4}" r="8" fill="#1c1d3a" stroke="{color_theme}" stroke-width="1"/>\n'
+                p_svg += f'  <text x="{px}" y="{py-1}" fill="#f1f1f5" font-family="Outfit" font-size="8" text-anchor="middle" font-weight="bold">{p_name}</text>\n'
+            return p_svg
+            
+        svg += draw_planets_in_zone(stambha_planets, 25, "#f3c63f")
+        svg += draw_planets_in_zone(madhya_planets, 60, "#a5a7cc")
+        svg += draw_planets_in_zone(prakara_planets, 100, "#3b3d75")
+        svg += draw_planets_in_zone(bahya_planets, 140, "#2e305c")
+        
+        svg += '</svg>'
+        return svg
+
+    def generate_sarvatobhadra_chakra_svg(self):
+        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        
+        east_naks = ["KR", "RO", "MR", "AR", "PU", "PY", "AS"]
+        south_naks = ["MA", "PP", "UP", "HA", "CH", "SW", "VI"]
+        west_naks = ["AN", "JY", "MU", "PA", "UA", "AB", "SH"]
+        north_naks = ["DH", "ST", "PB", "UB", "RE", "AS", "BH"]
+        
+        grid = [[None for _ in range(9)] for _ in range(9)]
+        
+        grid[0][0] = "A"
+        grid[0][8] = "AA"
+        grid[8][8] = "I"
+        grid[8][0] = "U"
+        
+        for i in range(7):
+            grid[0][i+1] = east_naks[i]
+            grid[i+1][8] = south_naks[i]
+            grid[8][7-i] = west_naks[i]
+            grid[7-i][0] = north_naks[i]
+            
+        sign_names = ["ARI", "TAU", "GEM", "CAN", "LEO", "VIR", "LIB", "SCO", "SAG", "CAP", "AQU", "PIS"]
+        sign_coords = [
+            (2,2), (2,3), (2,4), (2,5), (2,6), (3,6), 
+            (4,6), (5,6), (6,6), (6,5), (6,4), (6,3)
+        ]
+        for idx, (r, c) in enumerate(sign_coords):
+            grid[r][c] = sign_names[idx]
+            
+        p_abbr = {"Sun": "SU", "Moon": "MO", "Mars": "MA", "Mercury": "ME", "Jupiter": "JU", "Venus": "VE", "Saturn": "SA", "Rahu": "RA", "Ketu": "KE"}
+        
+        planet_placements = {}
+        for p in self.chart.get('planets', []):
+            lon = p.get('sidereal_longitude') if is_sid else p.get('tropical_longitude')
+            n_idx = self._get_28_nakshatra(lon)
+            nak_name = self.NAKSHATRAS_28[n_idx]
+            abbr = p_abbr.get(p['name'], p['name'][:2].upper())
+            
+            east_names = ["Krittika", "Rohini", "Mrigashira", "Ardra", "Punarvasu", "Pushya", "Ashlesha"]
+            south_names = ["Magha", "Purva Phalguni", "Uttara Phalguni", "Hasta", "Chitra", "Swati", "Vishakha"]
+            west_names = ["Anuradha", "Jyeshtha", "Mula", "Purva Ashadha", "Uttara Ashadha", "Abhijit", "Shravana"]
+            north_names = ["Dhanishta", "Shatabhisha", "Purva Bhadrapada", "Uttara Bhadrapada", "Revati", "Ashwini", "Bharani"]
+            
+            cell_coords = None
+            if nak_name in east_names:
+                cell_coords = (0, east_names.index(nak_name) + 1)
+            elif nak_name in south_names:
+                cell_coords = (south_names.index(nak_name) + 1, 8)
+            elif nak_name in west_names:
+                cell_coords = (8, 7 - west_names.index(nak_name))
+            elif nak_name in north_names:
+                cell_coords = (7 - north_names.index(nak_name), 0)
+                
+            if cell_coords:
+                if cell_coords not in planet_placements:
+                    planet_placements[cell_coords] = []
+                planet_placements[cell_coords].append(abbr)
+                
+        svg = '<svg viewBox="0 0 450 450" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-labelledby="sbc-chart-title" role="img">\n'
+        svg += '  <title id="sbc-chart-title">Sarvatobhadra Chakra 81-Square Grid</title>\n'
+        svg += '  <desc>An 81-square coordinates matrix showing planetary placements and aspects (vedhas).</desc>\n'
+        svg += '  <rect width="450" height="450" fill="#161730" stroke="#2e305c" stroke-width="3"/>\n'
+        
+        for r in range(9):
+            for c in range(9):
+                x = c * 50
+                y = r * 50
+                
+                ring = min(r, c, 8-r, 8-c)
+                if ring == 0:
+                    fill = "rgba(46, 48, 92, 0.3)"
+                    stroke = "#2e305c"
+                elif ring == 1:
+                    fill = "rgba(59, 61, 117, 0.2)"
+                    stroke = "#3b3d75"
+                else:
+                    fill = "#0d0e24"
+                    stroke = "#3b3d75"
+                    
+                svg += f'  <rect x="{x}" y="{y}" width="50" height="50" fill="{fill}" stroke="{stroke}" stroke-width="1"/>\n'
+                
+                val = grid[r][c]
+                if val:
+                    svg += f'  <text x="{x+25}" y="{y+20}" fill="#a5a7cc" font-family="Outfit" font-size="8.5" text-anchor="middle" font-weight="600">{val}</text>\n'
+                    
+                p_in_cell = planet_placements.get((r, c), [])
+                if p_in_cell:
+                    p_str = ",".join(p_in_cell)
+                    svg += f'  <text x="{x+25}" y="{y+40}" fill="#f3c63f" font-family="Outfit" font-size="10" text-anchor="middle" font-weight="bold">{p_str}</text>\n'
+                    
+        svg += '</svg>'
+        return svg
+
+    def generate_kurma_chakra_svg(self):
+        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        
+        directions = {
+            "Center (Madhya)": ["Krittika", "Rohini", "Mrigashira"],
+            "East (Head)": ["Ardra", "Punarvasu", "Pushya"],
+            "SE (Front Right Leg)": ["Ashlesha", "Magha", "Purva Phalguni"],
+            "South (Right Side)": ["Uttara Phalguni", "Hasta", "Chitra"],
+            "SW (Rear Right Leg)": ["Swati", "Vishakha", "Anuradha"],
+            "West (Tail)": ["Jyeshtha", "Mula", "Purva Ashadha"],
+            "NW (Rear Left Leg)": ["Uttara Ashadha", "Abhijit", "Shravana"],
+            "North (Left Side)": ["Dhanishta", "Shatabhisha", "Purva Bhadrapada"],
+            "NE (Front Left Leg)": ["Uttara Bhadrapada", "Revati", "Ashwini", "Bharani"]
+        }
+        
+        coords = {
+            "Center (Madhya)": (200, 200),
+            "East (Head)": (200, 80),
+            "SE (Front Right Leg)": (290, 120),
+            "South (Right Side)": (290, 200),
+            "SW (Rear Right Leg)": (290, 280),
+            "West (Tail)": (200, 320),
+            "NW (Rear Left Leg)": (110, 280),
+            "North (Left Side)": (110, 200),
+            "NE (Front Left Leg)": (110, 120)
+        }
+        
+        p_abbr = {"Sun": "SU", "Moon": "MO", "Mars": "MA", "Mercury": "ME", "Jupiter": "JU", "Venus": "VE", "Saturn": "SA", "Rahu": "RA", "Ketu": "KE"}
+        dir_planets = {d: [] for d in coords}
+        
+        for p in self.chart.get('planets', []):
+            lon = p.get('sidereal_longitude') if is_sid else p.get('tropical_longitude')
+            n_idx = self._get_28_nakshatra(lon)
+            nak_name = self.NAKSHATRAS_28[n_idx]
+            
+            abbr = p_abbr.get(p['name'], p['name'][:2].upper())
+            for d, naks in directions.items():
+                if nak_name in naks:
+                    dir_planets[d].append(abbr)
+                    break
+                    
+        svg = '<svg viewBox="0 0 400 400" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-labelledby="kurma-chart-title" role="img">\n'
+        svg += '  <title id="kurma-chart-title">Kurma Chakra Tortoise Diagram</title>\n'
+        svg += '  <desc>A tortoise layout mapping the 28 Nakshatras onto the tortoise\'s body parts corresponding to cardinal directions.</desc>\n'
+        svg += '  <rect width="400" height="400" fill="#161730" stroke="#2e305c" stroke-width="3"/>\n'
+        
+        svg += '  <ellipse cx="200" cy="50" rx="20" ry="25" fill="#1d1e40" stroke="#2e305c" stroke-width="2"/>\n'
+        svg += '  <polygon points="195,350 205,350 200,380" fill="#1d1e40" stroke="#2e305c" stroke-width="2"/>\n'
+        
+        svg += '  <ellipse cx="90" cy="100" rx="15" ry="20" transform="rotate(-30 90 100)" fill="#1d1e40" stroke="#2e305c" stroke-width="2"/>\n'
+        svg += '  <ellipse cx="310" cy="100" rx="15" ry="20" transform="rotate(30 310 100)" fill="#1d1e40" stroke="#2e305c" stroke-width="2"/>\n'
+        svg += '  <ellipse cx="85" cy="300" rx="15" ry="20" transform="rotate(30 85 300)" fill="#1d1e40" stroke="#2e305c" stroke-width="2"/>\n'
+        svg += '  <ellipse cx="315" cy="300" rx="15" ry="20" transform="rotate(-30 315 300)" fill="#1d1e40" stroke="#2e305c" stroke-width="2"/>\n'
+        
+        svg += '  <ellipse cx="200" cy="200" rx="110" ry="130" fill="#0d0e24" stroke="#f3c63f" stroke-width="2.5"/>\n'
+        
+        svg += '  <line x1="200" y1="70" x2="200" y2="330" stroke="#2e305c" stroke-dasharray="2,2"/>\n'
+        svg += '  <line x1="90" y1="200" x2="310" y2="200" stroke="#2e305c" stroke-dasharray="2,2"/>\n'
+        svg += '  <line x1="120" y1="110" x2="280" y2="290" stroke="#2e305c" stroke-dasharray="2,2"/>\n'
+        svg += '  <line x1="120" y1="290" x2="280" y2="110" stroke="#2e305c" stroke-dasharray="2,2"/>\n'
+        
+        for name, (x, y) in coords.items():
+            dir_label = name.split(" ")[0]
+            svg += f'  <text x="{x}" y="{y-6}" fill="#a5a7cc" font-family="Outfit" font-size="7.5" text-anchor="middle" font-weight="600">{dir_label}</text>\n'
+            p_list = dir_planets.get(name, [])
+            if p_list:
+                p_str = ",".join(p_list)
+                svg += f'  <text x="{x}" y="{y+8}" fill="#f3c63f" font-family="Outfit" font-size="9" text-anchor="middle" font-weight="bold">{p_str}</text>\n'
+            else:
+                svg += f'  <text x="{x}" y="{y+8}" fill="#40437a" font-family="Outfit" font-size="7.5" text-anchor="middle" font-style="italic">Empty</text>\n'
+                
+        svg += '</svg>'
+        return svg
+
     def compile_report(self, output_path):
         import datetime
         from jinja2 import Template
@@ -1644,6 +1918,9 @@ class HTMLReporter:
             north_chart_svg=self.generate_north_chart_svg(),
             south_chart_svg=self.generate_south_chart_svg(),
             sudarshana_chakra_svg=self.generate_sudarshana_chakra_svg(),
+            kota_chakra_svg=self.generate_kota_chakra_svg(),
+            sarvatobhadra_chakra_svg=self.generate_sarvatobhadra_chakra_svg(),
+            kurma_chakra_svg=self.generate_kurma_chakra_svg(),
             today=datetime.datetime.now().strftime("%Y-%m-%d"),
             zodiac_signs=AstroMath.ZODIAC_SIGNS,
             classical_planets=["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"],
@@ -1921,161 +2198,99 @@ class AspectEngine:
         """
         is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
         
-        parashari = {}
-        jaimini = {}
-        tajika = {}
+        parashari = {p: [] for p in cls.CLASSICAL_PLANETS}
+        jaimini = {p: [] for p in cls.CLASSICAL_PLANETS}
+        tajika = {p: [] for p in cls.CLASSICAL_PLANETS}
         
-        # Initialize dictionaries
-        for name in cls.CLASSICAL_PLANETS:
-            parashari[name] = []
-            jaimini[name] = []
-            tajika[name] = []
+        # Pre-compute positions to avoid redundant calculations
+        positions = {}
+        for p in cls.CLASSICAL_PLANETS:
+            if p not in chart:
+                continue
+            obj = chart[p]
+            lon = obj.sidereal_longitude if is_sid else obj.tropical_longitude
+            h = obj.vedic_house if is_sid else obj.tropical_house
+            sign_idx = int(lon // 30) % 12
+            positions[p] = {
+                "lon": lon,
+                "house": h,
+                "sign_idx": sign_idx,
+                "sign_type": sign_idx % 3  # 0=Movable, 1=Fixed, 2=Dual
+            }
             
-        # 1. Parashari aspects (Graha Drishti)
         for p1 in cls.CLASSICAL_PLANETS:
-            if p1 not in chart:
+            if p1 not in positions:
                 continue
-            obj1 = chart[p1]
-            h1 = obj1.vedic_house if is_sid else obj1.tropical_house
-            if not h1:
-                continue
-                
-            for p2 in cls.CLASSICAL_PLANETS:
-                if p1 == p2 or p2 not in chart:
-                    continue
-                obj2 = chart[p2]
-                h2 = obj2.vedic_house if is_sid else obj2.tropical_house
-                if not h2:
-                    continue
-                    
-                # Calculate house distance (inclusive, 0 to 11)
-                distance = (h2 - h1) % 12
-                
-                # Check aspect rules
-                has_aspect = False
-                aspect_type = ""
-                
-                # All planets aspect 7th house (distance = 6)
-                if distance == 6:
-                    has_aspect = True
-                    aspect_type = "7th House (Universal)"
-                    
-                # Special Mars aspects (4th and 8th house, distance = 3 and 7)
-                elif p1 == "Mars" and distance in [3, 7]:
-                    has_aspect = True
-                    aspect_type = f"{distance + 1}th House (Special)"
-                    
-                # Special Jupiter aspects (5th and 9th house, distance = 4 and 8)
-                elif p1 == "Jupiter" and distance in [4, 8]:
-                    has_aspect = True
-                    aspect_type = f"{distance + 1}th House (Special)"
-                    
-                # Special Saturn aspects (3rd and 10th house, distance = 2 and 9)
-                elif p1 == "Saturn" and distance in [2, 9]:
-                    has_aspect = True
-                    aspect_type = f"{distance + 1}th House (Special)"
-                    
-                if has_aspect:
-                    parashari[p1].append({
-                        "target": p2,
-                        "aspect": aspect_type,
-                        "distance": distance + 1
-                    })
-                    
-        # 2. Jaimini aspects (Rashi Drishti)
-        # Sign Categories: 0=Movable, 1=Fixed, 2=Dual
-        movable_signs = [0, 3, 6, 9]    # Aries, Cancer, Libra, Capricorn
-        fixed_signs = [1, 4, 7, 10]     # Taurus, Leo, Scorpio, Aquarius
-        dual_signs = [2, 5, 8, 11]      # Gemini, Virgo, Sagittarius, Pisces
-        
-        for p1 in cls.CLASSICAL_PLANETS:
-            if p1 not in chart:
-                continue
-            obj1 = chart[p1]
-            lon1 = obj1.sidereal_longitude if is_sid else obj1.tropical_longitude
-            s1 = int(lon1 // 30) % 12
+            pos1 = positions[p1]
+            h1, lon1, s1, t1 = pos1["house"], pos1["lon"], pos1["sign_idx"], pos1["sign_type"]
             
-            # Determine sign type
-            if s1 in movable_signs:
-                t1 = 0 # Movable
-            elif s1 in fixed_signs:
-                t1 = 1 # Fixed
-            else:
-                t1 = 2 # Dual
-                
             for p2 in cls.CLASSICAL_PLANETS:
-                if p1 == p2 or p2 not in chart:
+                if p1 == p2 or p2 not in positions:
                     continue
-                obj2 = chart[p2]
-                lon2 = obj2.sidereal_longitude if is_sid else obj2.tropical_longitude
-                s2 = int(lon2 // 30) % 12
+                pos2 = positions[p2]
+                h2, lon2, s2, t2 = pos2["house"], pos2["lon"], pos2["sign_idx"], pos2["sign_type"]
                 
-                # Check sign type
-                if s2 in movable_signs:
-                    t2 = 0
-                elif s2 in fixed_signs:
-                    t2 = 1
-                else:
-                    t2 = 2
+                # 1. Parashari aspects (Graha Drishti)
+                if h1 and h2:
+                    distance = (h2 - h1) % 12
+                    has_aspect = False
+                    aspect_type = ""
                     
-                has_aspect = False
-                
-                # Dual aspects Dual
-                if t1 == 2 and t2 == 2:
-                    has_aspect = True
-                # Movable aspects Fixed except adjacent
-                elif t1 == 0 and t2 == 1:
-                    adjacent_signs = [(s1 - 1) % 12, (s1 + 1) % 12]
-                    if s2 not in adjacent_signs:
+                    if distance == 6:
                         has_aspect = True
-                # Fixed aspects Movable except adjacent
-                elif t1 == 1 and t2 == 0:
-                    adjacent_signs = [(s1 - 1) % 12, (s1 + 1) % 12]
-                    if s2 not in adjacent_signs:
+                        aspect_type = "7th House (Universal)"
+                    elif p1 == "Mars" and distance in [3, 7]:
                         has_aspect = True
+                        aspect_type = f"{distance + 1}th House (Special)"
+                    elif p1 == "Jupiter" and distance in [4, 8]:
+                        has_aspect = True
+                        aspect_type = f"{distance + 1}th House (Special)"
+                    elif p1 == "Saturn" and distance in [2, 9]:
+                        has_aspect = True
+                        aspect_type = f"{distance + 1}th House (Special)"
                         
-                if has_aspect:
+                    if has_aspect:
+                        parashari[p1].append({
+                            "target": p2,
+                            "aspect": aspect_type,
+                            "distance": distance + 1
+                        })
+                        
+                # 2. Jaimini aspects (Rashi Drishti)
+                has_jaimini = False
+                if t1 == 2 and t2 == 2:  # Dual aspects Dual
+                    has_jaimini = True
+                elif t1 == 0 and t2 == 1:  # Movable aspects Fixed except adjacent
+                    if s2 not in [(s1 - 1) % 12, (s1 + 1) % 12]:
+                        has_jaimini = True
+                elif t1 == 1 and t2 == 0:  # Fixed aspects Movable except adjacent
+                    if s2 not in [(s1 - 1) % 12, (s1 + 1) % 12]:
+                        has_jaimini = True
+                        
+                if has_jaimini:
                     jaimini[p1].append({
                         "target": p2,
                         "sign_from": AstroMath.ZODIAC_SIGNS[s1],
                         "sign_to": AstroMath.ZODIAC_SIGNS[s2]
                     })
                     
-        # 3. Tajika aspects (Degree-based)
-        for p1 in cls.CLASSICAL_PLANETS:
-            if p1 not in chart:
-                continue
-            obj1 = chart[p1]
-            lon1 = obj1.sidereal_longitude if is_sid else obj1.tropical_longitude
-            
-            for p2 in cls.CLASSICAL_PLANETS:
-                if p1 == p2 or p2 not in chart:
-                    continue
-                obj2 = chart[p2]
-                lon2 = obj2.sidereal_longitude if is_sid else obj2.tropical_longitude
-                
+                # 3. Tajika aspects (Degree-based)
                 diff = abs(lon1 - lon2) % 360
                 diff = min(diff, 360.0 - diff)
                 
-                aspects = {
+                aspects_map = {
                     "Conjunction": 0.0,
                     "Sextile": 60.0,
                     "Square": 90.0,
                     "Trine": 120.0,
                     "Opposition": 180.0
                 }
-                
-                for asp_name, val in aspects.items():
+                for asp_name, val in aspects_map.items():
                     orb = abs(diff - val)
                     if orb <= 6.0:
-                        # Tajika relationship category
-                        if asp_name in ["Sextile", "Trine"]:
-                            nature = "Friendly (Mitra)"
-                        elif asp_name in ["Square", "Opposition"]:
-                            nature = "Hostile (Shatru)"
-                        else:
-                            nature = "Neutral (Sama)"
-                            
+                        nature = "Friendly (Mitra)" if asp_name in ["Sextile", "Trine"] else (
+                            "Hostile (Shatru)" if asp_name in ["Square", "Opposition"] else "Neutral (Sama)"
+                        )
                         tajika[p1].append({
                             "target": p2,
                             "aspect": asp_name,

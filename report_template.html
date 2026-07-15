@@ -435,6 +435,7 @@
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-jaimini" id="btn-jaimini">Jaimini</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-aspects" id="btn-aspects">Planetary Aspects</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-sudarshana" id="btn-sudarshana">Sudarshana Chakra</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-mandalas" id="btn-mandalas">Vedic Mandalas</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-friendships" id="btn-friendships">Planetary Friendships</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-yogas" id="btn-yogas">Vedic Yogas</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-dashas" id="btn-dashas">Vimshottari Dasha</button></li>
@@ -606,14 +607,14 @@
                 <!-- Tab: Planetary Aspects -->
                 <div class="tab-content" id="tab-aspects" role="tabpanel" aria-labelledby="btn-aspects" tabindex="0" hidden>
                     <!-- Sub-tabs navigation -->
-                    <div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1.5rem;">
-                        <button class="filter-btn active" id="btn-sub-parashari" onclick="showAspectSystem('parashari')">Parashari (Graha Drishti)</button>
-                        <button class="filter-btn" id="btn-sub-jaimini" onclick="showAspectSystem('jaimini')">Jaimini (Rashi Drishti)</button>
-                        <button class="filter-btn" id="btn-sub-tajika" onclick="showAspectSystem('tajika')">Tajika (Degree-Based)</button>
+                    <div role="tablist" aria-label="Aspect System Selection" style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1.5rem;">
+                        <button class="filter-btn active" role="tab" aria-selected="true" aria-controls="sub-aspects-parashari" id="btn-sub-parashari" onclick="showAspectSystem('parashari')">Parashari (Graha Drishti)</button>
+                        <button class="filter-btn" role="tab" aria-selected="false" aria-controls="sub-aspects-jaimini" id="btn-sub-jaimini" onclick="showAspectSystem('jaimini')">Jaimini (Rashi Drishti)</button>
+                        <button class="filter-btn" role="tab" aria-selected="false" aria-controls="sub-aspects-tajika" id="btn-sub-tajika" onclick="showAspectSystem('tajika')">Tajika (Degree-Based)</button>
                     </div>
 
                     <!-- Sub-Tab: Parashari -->
-                    <div id="sub-aspects-parashari" class="sub-aspect-content">
+                    <div id="sub-aspects-parashari" class="sub-aspect-content" role="tabpanel" aria-labelledby="btn-sub-parashari">
                         <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem; font-style: italic;">
                             Graha Drishti: Planets aspect entire houses based on their position. All planets aspect the 7th house from themselves. Mars (4th/8th), Jupiter (5th/9th), and Saturn (3rd/10th) have special aspects.
                         </p>
@@ -651,7 +652,7 @@
                     </div>
 
                     <!-- Sub-Tab: Jaimini -->
-                    <div id="sub-aspects-jaimini" class="sub-aspect-content" style="display: none;">
+                    <div id="sub-aspects-jaimini" class="sub-aspect-content" role="tabpanel" aria-labelledby="btn-sub-jaimini" style="display: none;">
                         <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem; font-style: italic;">
                             Rashi Drishti: Sign-to-sign aspects. Movable signs aspect Fixed signs (except adjacent). Fixed signs aspect Movable signs (except adjacent). Dual signs aspect all other Dual signs.
                         </p>
@@ -689,7 +690,7 @@
                     </div>
 
                     <!-- Sub-Tab: Tajika -->
-                    <div id="sub-aspects-tajika" class="sub-aspect-content" style="display: none;">
+                    <div id="sub-aspects-tajika" class="sub-aspect-content" role="tabpanel" aria-labelledby="btn-sub-tajika" style="display: none;">
                         <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem; font-style: italic;">
                             Tajika Aspects: Degree-based angular aspects (Conjunction 0°, Sextile 60°, Square 90°, Trine 120°, Opposition 180°) calculated within a 6° orb.
                         </p>
@@ -763,6 +764,97 @@
                                     <li><strong>Tri-Ring Alignment</strong>: When a house is occupied by benefics or receives strong aspects in all three rings, that area of life manifests with extreme ease and harmony.</li>
                                     <li><strong>Divergent Paths</strong>: When a house is strong in one ring but weak/afflicted in another, it indicates tension. For example, a strong house in Udaya Lagna (physical success) with an afflicted placement in Chandra Lagna (emotional stress) signifies material gain accompanied by inner anxiety.</li>
                                 </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Vedic Mandalas -->
+                <div class="tab-content" id="tab-mandalas" role="tabpanel" aria-labelledby="btn-mandalas" tabindex="0" hidden>
+                    <!-- Sub-tabs navigation -->
+                    <div role="tablist" aria-label="Mandala System Selection" style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1.5rem;">
+                        <button class="filter-btn active" role="tab" aria-selected="true" aria-controls="sub-mandalas-kota" id="btn-sub-kota" onclick="showMandalaSystem('kota')">Kota Chakra (Fort of Health)</button>
+                        <button class="filter-btn" role="tab" aria-selected="false" aria-controls="sub-mandalas-sbc" id="btn-sub-sbc" onclick="showMandalaSystem('sbc')">Sarvatobhadra Chakra (Transit Radar)</button>
+                        <button class="filter-btn" role="tab" aria-selected="false" aria-controls="sub-mandalas-kurma" id="btn-sub-kurma" onclick="showMandalaSystem('kurma')">Kurma Chakra (Tortoise Direction Map)</button>
+                    </div>
+
+                    <!-- Sub-Tab: Kota Chakra -->
+                    <div id="sub-mandalas-kota" class="sub-mandala-content" role="tabpanel" aria-labelledby="btn-sub-kota">
+                        <div style="display: grid; grid-template-columns: minmax(300px, 450px) 1fr; gap: 2rem; align-items: start;">
+                            <!-- SVG Display -->
+                            <div class="yoga-card" style="padding: 1.5rem; background: rgba(30, 32, 66, 0.4); border: 1px solid var(--border-color); border-radius: 8px; display: flex; justify-content: center; align-items: center;">
+                                <div style="width: 100%; max-width: 400px; aspect-ratio: 1/1;">
+                                    {{ kota_chakra_svg | safe }}
+                                </div>
+                            </div>
+                            <!-- Interpretation -->
+                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                <div class="yoga-card" style="padding: 1.5rem; background: rgba(30, 32, 66, 0.4); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <h3 style="font-family: 'Cinzel', serif; font-size: 1.25rem; color: var(--gold); margin-bottom: 0.75rem;">Kota Chakra (Vulnerability Fort)</h3>
+                                    <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-color);">
+                                        The **Kota Chakra** represents a personal fortress calculated from the Janma Nakshatra. It evaluates physical health, psychological protection, and vulnerability to external challenges:
+                                    </p>
+                                    <ul style="margin-left: 1.25rem; list-style-type: square; font-size: 0.9rem; line-height: 1.6; color: var(--text-color); margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                                        <li><strong>Stambha (Pillar)</strong>: The central heart of the fort. Extremely sensitive; transit of malefics here causes severe disruption.</li>
+                                        <li><strong>Madhya (Inner Space)</strong>: Inner courtyards. Represents mental energy and internal resources.</li>
+                                        <li><strong>Prakara (Wall)</strong>: The defensive perimeter. Shows boundary control and resilience.</li>
+                                        <li><strong>Bahya (Exterior)</strong>: Outposts outside the fort. Indicates interactions with the wider world.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Tab: Sarvatobhadra Chakra -->
+                    <div id="sub-mandalas-sbc" class="sub-mandala-content" role="tabpanel" aria-labelledby="btn-sub-sbc" style="display: none;">
+                        <div style="display: grid; grid-template-columns: minmax(300px, 450px) 1fr; gap: 2rem; align-items: start;">
+                            <!-- SVG Display -->
+                            <div class="yoga-card" style="padding: 1.5rem; background: rgba(30, 32, 66, 0.4); border: 1px solid var(--border-color); border-radius: 8px; display: flex; justify-content: center; align-items: center;">
+                                <div style="width: 100%; max-width: 400px; aspect-ratio: 1/1;">
+                                    {{ sarvatobhadra_chakra_svg | safe }}
+                                </div>
+                            </div>
+                            <!-- Interpretation -->
+                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                <div class="yoga-card" style="padding: 1.5rem; background: rgba(30, 32, 66, 0.4); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <h3 style="font-family: 'Cinzel', serif; font-size: 1.25rem; color: var(--gold); margin-bottom: 0.75rem;">Sarvatobhadra Chakra (Cosmic Radar)</h3>
+                                    <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-color);">
+                                        The **Sarvatobhadra Chakra** is an 81-square grid coordinate matrix representing the full celestial sphere. The 28 Nakshatras (including Abhijit) form the outer border:
+                                    </p>
+                                    <ul style="margin-left: 1.25rem; list-style-type: square; font-size: 0.9rem; line-height: 1.6; color: var(--text-color); margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                                        <li><strong>East (Top Row)</strong>: Krittika to Ashlesha.</li>
+                                        <li><strong>South (Right Column)</strong>: Magha to Vishakha.</li>
+                                        <li><strong>West (Bottom Row)</strong>: Anuradha to Shravana.</li>
+                                        <li><strong>North (Left Column)</strong>: Dhanishta to Bharani.</li>
+                                        <li><strong>Vedhas (Obstructions)</strong>: When transiting planets cross coordinates with natal planets horizontally, vertically, or diagonally, they trigger specific events.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-Tab: Kurma Chakra -->
+                    <div id="sub-mandalas-kurma" class="sub-mandala-content" role="tabpanel" aria-labelledby="btn-sub-kurma" style="display: none;">
+                        <div style="display: grid; grid-template-columns: minmax(300px, 450px) 1fr; gap: 2rem; align-items: start;">
+                            <!-- SVG Display -->
+                            <div class="yoga-card" style="padding: 1.5rem; background: rgba(30, 32, 66, 0.4); border: 1px solid var(--border-color); border-radius: 8px; display: flex; justify-content: center; align-items: center;">
+                                <div style="width: 100%; max-width: 400px; aspect-ratio: 1/1;">
+                                    {{ kurma_chakra_svg | safe }}
+                                </div>
+                            </div>
+                            <!-- Interpretation -->
+                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                <div class="yoga-card" style="padding: 1.5rem; background: rgba(30, 32, 66, 0.4); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <h3 style="font-family: 'Cinzel', serif; font-size: 1.25rem; color: var(--gold); margin-bottom: 0.75rem;">Kurma Chakra (Tortoise Map)</h3>
+                                    <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-color);">
+                                        The **Kurma Chakra** maps the 28 Nakshatras onto the body parts of a tortoise representing cardinal geographic directions. 
+                                    </p>
+                                    <ul style="margin-left: 1.25rem; list-style-type: square; font-size: 0.9rem; line-height: 1.6; color: var(--text-color); margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                                        <li><strong>Head (East)</strong> / <strong>Tail (West)</strong> / <strong>Sides (North/South)</strong>.</li>
+                                        <li><strong>Limbs (SE, SW, NW, NE)</strong>.</li>
+                                        <li><strong>Application</strong>: Used classically in mundane astrology to locate the direction of earthquakes, wars, weather patterns, or career movements relative to the native's birthplace.</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1121,10 +1213,41 @@
             });
             document.getElementById('sub-aspects-' + system).style.display = 'block';
             
-            document.querySelectorAll('[id^="btn-sub-"]').forEach(btn => {
-                btn.classList.remove('active');
+            const aspectSystems = ['parashari', 'jaimini', 'tajika'];
+            aspectSystems.forEach(s => {
+                const btn = document.getElementById('btn-sub-' + s);
+                if (btn) {
+                    btn.classList.remove('active');
+                    btn.setAttribute('aria-selected', 'false');
+                }
             });
-            document.getElementById('btn-sub-' + system).classList.add('active');
+            const targetBtn = document.getElementById('btn-sub-' + system);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+                targetBtn.setAttribute('aria-selected', 'true');
+            }
+        };
+
+        // Sub-mandala systems toggle
+        window.showMandalaSystem = function(system) {
+            document.querySelectorAll('.sub-mandala-content').forEach(el => {
+                el.style.display = 'none';
+            });
+            document.getElementById('sub-mandalas-' + system).style.display = 'block';
+            
+            const mandalaSystems = ['kota', 'sbc', 'kurma'];
+            mandalaSystems.forEach(s => {
+                const btn = document.getElementById('btn-sub-' + s);
+                if (btn) {
+                    btn.classList.remove('active');
+                    btn.setAttribute('aria-selected', 'false');
+                }
+            });
+            const targetBtn = document.getElementById('btn-sub-' + system);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+                targetBtn.setAttribute('aria-selected', 'true');
+            }
         };
     </script>
 </body>

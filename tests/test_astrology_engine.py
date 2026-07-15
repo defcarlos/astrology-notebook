@@ -169,6 +169,16 @@ class TestAstrologyEngine(unittest.TestCase):
             self.assertIn("</svg>", sudarshana_svg)
             self.assertIn("SUDARSHANA", sudarshana_svg)
 
+            kota_svg = reporter.generate_kota_chakra_svg()
+            self.assertIn("Kota Chakra Fort Diagram", kota_svg)
+            self.assertIn("STAMBHA", kota_svg)
+
+            sbc_svg = reporter.generate_sarvatobhadra_chakra_svg()
+            self.assertIn("Sarvatobhadra Chakra 81-Square Grid", sbc_svg)
+
+            kurma_svg = reporter.generate_kurma_chakra_svg()
+            self.assertIn("Kurma Chakra Tortoise Diagram", kurma_svg)
+
     def test_albert_einstein_sidereal(self):
         """
         Verify Albert Einstein chart in Sidereal (Everything) mode.
