@@ -76,3 +76,78 @@ You can execute the test suite directly from your terminal:
 python tests/test_astrology_engine.py
 ```
 
+---
+
+## 📖 Tajika Prasna Guide (Horary Astrology)
+
+Prasna is the art of answering specific queries based on the moment and location a question is posed. Tajika astrology's degree-based aspects are the primary foundation for Prasna.
+
+### How to Cast a Prasna Chart
+1. Update `B_YEAR`, `B_MONTH`, `B_DAY`, and `B_TIME` in the notebook inputs to the **exact moment** the question is asked.
+2. Update `LATITUDE` and `LONGITUDE` to the location of the asker (the querent).
+3. Run the pipeline and open the generated HTML report.
+
+### Key Interpretations
+1. **The Asker (Querent)**: Represented by the **Lagna Lord** (Lord of the 1st house) and the **Moon**.
+2. **The Subject (Quesited)**: Represented by the lord of the house corresponding to the topic (e.g., 7th for marriage, 10th for career, 4th for property).
+3. **The Answer (Tajika Aspects)**: Check the **Planetary Aspects -> Tajika** tab:
+   * **Conjunction, Sextile, or Trine**: Success and resolution.
+   * **Square or Opposition**: Obstacles, conflict, or failure.
+   * **No Aspect**: Stagnation or no progression.
+4. **Timing & Application (Ithasala)**: If the faster-moving planet has a lower degree than the slower planet, they are **applying** (Ithasala Yoga), indicating success in the future. If the faster planet has a higher degree, they are **separating** (Esharapha Yoga), meaning the opportunity has passed.
+
+---
+
+## 📖 Traditional Parashari Prasna Guide
+
+While Tajika aspects are degree-based, traditional **Parashari Prasna** uses classical house-based aspects (*Graha Drishti*), relationship dynamics, and planetary alignments to answer horary questions.
+
+### Key Interpretations in Parashari Prasna
+1. **Lagna & Lagna Lord (Querent)**: 
+   * Check the **Planets** and **Planetary Friendships** tabs.
+   * If the Lagna Lord is placed in a Kendra (1, 4, 7, 10) or Trikona (5, 9), or is exalted/own sign, the querent is strong enough to achieve the goal.
+2. **Quesited House & House Lord (The Query)**:
+   * Look at the target house (e.g. 7th house for business partner/spouse). 
+   * If the house is aspected by its own lord or by benefics (Jupiter, Venus, Mercury), or is free from malefic occupants/aspects, the desire is highly favorable.
+3. **Mutual Aspects & Conjunctions**:
+   * Check **Planetary Aspects -> Parashari**:
+     * If the Lagna Lord aspects the Quesited House or the Quesited Lord directly, success is indicated.
+     * If they are conjoined in the same house, resolution is imminent.
+4. **Planetary Friendships (Panchadha Maitri)**:
+   * Check the **Planetary Friendships** compound friendship table.
+   * If the Lagna Lord and Quesited House Lord are **Friends (Mitra)** or **Great Friends (Adhi Mitra)**, agreement, cooperative resolution, and a positive outcome are easily reached.
+   * If they are **Enemies (Shatru)** or **Great Enemies (Adhi Shatru)**, the query faces hidden friction, lack of cooperation, or cancellation.
+5. **Benefic/Malefic Distribution**:
+   * Benefics (Jupiter, Venus, Mercury, strong Moon) in Kendras (1, 4, 7, 10) or Trikonas (5, 9) bring sudden, helpful assistance.
+   * Malefics (Mars, Saturn, Sun) in Dusthanas (6, 8, 12) represent that difficulties/enemies/losses are neutralized, whereas malefics in Kendras indicate obstacles and frustration.
+
+---
+
+## 📖 Natal Astrology Guide (Birth Chart Interpretation)
+
+Use the interactive HTML report to synthesize a birth chart using Vedic principles:
+
+### 1. The Core Triad (Sudarshana Chakra)
+Go to the **Sudarshana Chakra** tab. This concentric 3-wheel chart aligns three dimensions of the native's life:
+* **Outer Ring (Udaya Lagna)**: Physical body, career, actions, and outer environment.
+* **Middle Ring (Chandra Lagna)**: Mind, emotions, psychology, and receptivity.
+* **Inner Ring (Surya Lagna)**: Soul, vitality, health, and spirit.
+* *Synthesis*: A house is strongest and manifests with ease when it contains benefics or strong placements in all three rings.
+
+### 2. Planetary Strengths & Dignities
+* **Planetary Synthesis Tab**: Look at the labels under the planet cards to identify Jaimini **Chara Karakas** (e.g. *Atmakaraka* - the soul significator, *Amatyakaraka* - career significator).
+* **Shadbala Tab**: Check the detailed breakdown of the 6 sources of planetary strength. A planet with a high Shadbala total (> threshold) manifests its house significations strongly and easily in the physical world.
+
+### 3. Relationship Dynamics (Panchadha Maitri)
+* **Planetary Friendships Tab**: View the **Compound Friendships** grid. Planets that are natural or temporal friends cooperate, whereas enemies (e.g. Saturn and Sun) placed together create tension, friction, or delays in the houses they rule.
+
+### 4. House Support & Gochara (Ashtakavarga)
+* **Ashtakavarga Tab**: Review the **Samudaya Ashtakavarga (SAV)** row at the bottom of the table:
+  * Houses with **> 28 bindus** indicate strength, prosperity, and success during planetary transits.
+  * Houses with **< 25 bindus** represent areas of life that require discipline, structure, and hard work to sustain.
+* **Gochara Transits Tab**: Checks transits against the natal Moon. Auspicious transits will bring positive results if they cross houses with high SAV bindu counts.
+
+### 5. Timing of Events (Vimshottari Dasha)
+* **Vimshottari Dasha Tab**: Expand the nested list to track current Mahadashas, Antardashas, and Pratyantardashas. The lords of the active dasha periods will activate their natal house placements and planetary configurations during their respective time windows.
+
+
