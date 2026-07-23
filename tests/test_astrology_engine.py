@@ -18,7 +18,8 @@ from astrology_engine import (
     JaiminiEngine,
     PanchangaEngine,
     PlanetarySynthesisEngine,
-    AspectEngine
+    AspectEngine,
+    AvasthaEngine
 )
 
 # Configure Swiss Ephemeris path
@@ -303,5 +304,32 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertTrue(yogas.get("Malavya Yoga", {}).get("active"))
         self.assertTrue(yogas.get("Gajakesari Yoga", {}).get("active"))
 
+    def test_avastha_engine(self):
+        """
+        Verify calculation of all 5 Avastha systems.
+        """
+        # Steve Jobs chart
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
+            year=1955, month=2, day=24, time_str="19:15", tz="America/Los_Angeles",
+            lat=37.7749, lon=-122.4194, mode="Tropical-Vedic"
+        )
+        
+        # Test Baladi calculation for a planet
+        sun_lon = chart["Sun"].sidereal_longitude
+        baladi = AvasthaEngine.calculate_baladi(sun_lon)
+        self.assertIn(baladi["state"], ["Bāla", "Kumāra", "Yuvā", "Vṛddha", "Mṛta"])
+        self.assertIn("potency", baladi)
+        
+        # Test complete avasthas for all planets
+        for p_name in ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]:
+            p_obj = chart[p_name]
+            avasthas = AvasthaEngine.get_planet_avasthas(p_name, p_obj, chart, local_sky.houses, "Everything")
+            self.assertIn("baladi", avasthas)
+            self.assertIn("jagradadi", avasthas)
+            self.assertIn("diptadi", avasthas)
+            self.assertIn("shayanadi", avasthas)
+            self.assertIn("lajjitadi", avasthas)
+
 if __name__ == '__main__':
     unittest.main()
+

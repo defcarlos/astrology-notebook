@@ -432,6 +432,7 @@
                 <ul class="tabs-list" role="tablist">
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-planets" id="btn-planets">Planets</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-synthesis" id="btn-synthesis">Planetary Synthesis</button></li>
+                    <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-avasthas" id="btn-avasthas">Avasthas</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-jaimini" id="btn-jaimini">Jaimini</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-aspects" id="btn-aspects">Planetary Aspects</button></li>
                     <li role="presentation"><button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-sudarshana" id="btn-sudarshana">Sudarshana Chakra</button></li>
@@ -540,6 +541,74 @@
                                 </div>
                             </div>
                         {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Tab: Avasthas -->
+                <div class="tab-content" id="tab-avasthas" role="tabpanel" aria-labelledby="btn-avasthas" tabindex="0" hidden>
+                    <h2 class="yoga-title" style="font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">Planetary Avasthas (5-Fold Classical States)</h2>
+                    
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Planet</th>
+                                    <th scope="col">Bālādi (Age & Potency)</th>
+                                    <th scope="col">Jāgradādi (Consciousness)</th>
+                                    <th scope="col">Dīptādi (Luminosity)</th>
+                                    <th scope="col">Shayanādi (Activity)</th>
+                                    <th scope="col">Lajjitādi (Psychological Mood)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in chart.planets %}
+                                <tr>
+                                    <th scope="row"><strong>{{ p.name }}</strong></th>
+                                    <td>
+                                        {% if p.avasthas and p.avasthas.baladi %}
+                                            <strong>{{ p.avasthas.baladi.state }}</strong>
+                                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                                {{ p.avasthas.baladi.potency }} ({{ p.avasthas.baladi.sign_type }} Sign)
+                                            </div>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if p.avasthas and p.avasthas.jagradadi %}
+                                            <strong>{{ p.avasthas.jagradadi.state }}</strong>
+                                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                                {{ p.avasthas.jagradadi.description }}
+                                            </div>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if p.avasthas and p.avasthas.diptadi %}
+                                            <strong>{{ p.avasthas.diptadi.state }}</strong>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if p.avasthas and p.avasthas.shayanadi %}
+                                            <strong>{{ p.avasthas.shayanadi.state }}</strong>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if p.avasthas and p.avasthas.lajjitadi %}
+                                            <strong>{{ p.avasthas.lajjitadi.states | join(', ') }}</strong>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 

@@ -150,4 +150,19 @@ Go to the **Sudarshana Chakra** tab. This concentric 3-wheel chart aligns three 
 ### 5. Timing of Events (Vimshottari Dasha)
 * **Vimshottari Dasha Tab**: Expand the nested list to track current Mahadashas, Antardashas, and Pratyantardashas. The lords of the active dasha periods will activate their natal house placements and planetary configurations during their respective time windows.
 
+---
 
+## 🗺️ Future Roadmap
+
+The following classical Vedic **Avastha Systems** are scheduled for implementation into the calculation pipeline, HTML report dashboard, and LLM payload exporter:
+
+1. **Bālādi Avasthas (Age & Degree Potency)**
+   * Computes planetary maturity (*Bāla*, *Kumāra*, *Yuvā*, *Vṛddha*, *Mṛta*) based on sign parity and longitude degrees.
+2. **Jāgradādi Avasthas (Alertness & Consciousness)**
+   * Evaluates planetary consciousness (*Jāgraṭa* - Awake, *Swapna* - Dreaming, *Suṣupti* - Sleeping) based on dignity and friendship status.
+3. **Dīptādi Avasthas (10 Luminosity & Emotional Dignity States)**
+   * Assesses qualitative expression across 10 states (*Dīpta*, *Svastha*, *Mudita*, *Shānta*, *Dīna*, *Dukhita*, *Vikala*, *Khala*, *Kopa*, *Dapti*).
+4. **Shayanādi Avasthas (12 Activity & Behavioral States)**
+   * Calculates Parashari behavioral states (*Śayana*, *Upaveśana*, *Netrapāṇi*, *Prakāśana*, *Gamana*, *Āgamana*, *Sabhā*, *Āgama*, *Bhojana*, *Nṛtyalipsā*, *Kautuka*, *Nidrā*) using Nakshatra index formulas.
+5. **Lajjitādi Avasthas (6 Emotional/Psychological Conditions)**
+   * Evaluates planetary mood and affliction (*Lajjita*, *Garvita*, *Kṣubhita*, *Kṣudhita*, *Tṛṣita*, *Mudita*) based on 5th house placements, nodal conjunctions, and malefic aspects.

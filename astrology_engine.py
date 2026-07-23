@@ -2074,6 +2074,191 @@ class PanchangaEngine:
         }
 
 
+# --- 9.5. AVASTHA ENGINE (PLANETARY STATES) ---
+class AvasthaEngine:
+    BALADI_STATES_ODD = ["Bāla", "Kumāra", "Yuvā", "Vṛddha", "Mṛta"]
+    BALADI_STATES_EVEN = ["Mṛta", "Vṛddha", "Yuvā", "Kumāra", "Bāla"]
+    BALADI_POTENCY = {
+        "Bāla": {"label": "25% (Infant)", "multiplier": 0.25},
+        "Kumāra": {"label": "50% (Youth)", "multiplier": 0.50},
+        "Yuvā": {"label": "100% (Full Capacity)", "multiplier": 1.00},
+        "Vṛddha": {"label": "10% (Minimal)", "multiplier": 0.10},
+        "Mṛta": {"label": "0% (Inactive)", "multiplier": 0.00}
+    }
+
+    JAGRADADI_DESCRIPTIONS = {
+        "Jāgraṭa": "Awake (100% Capacity)",
+        "Swapna": "Dreaming (50% Capacity)",
+        "Suṣupti": "Sleeping (0% / Adverse)"
+    }
+
+    SHAYANADI_STATES = [
+        "Śayana (Resting)",
+        "Upaveśana (Sitting)",
+        "Netrapāṇi (Hand on Eye)",
+        "Prakāśana (Illuminating)",
+        "Gamana (Travelling)",
+        "Āgamana (Returning)",
+        "Sabhā (In Assembly)",
+        "Āgama (Acquiring)",
+        "Bhojana (Eating)",
+        "Nṛtyalipsā (Desiring Pleasure)",
+        "Kautuka (Curious)",
+        "Nidrā (Sleeping)"
+    ]
+
+    PLANET_INDEX = {
+        "Sun": 1, "Moon": 2, "Mars": 3, "Mercury": 4,
+        "Jupiter": 5, "Venus": 6, "Saturn": 7, "Rahu": 8, "Ketu": 9
+    }
+
+    @classmethod
+    def calculate_baladi(cls, lon):
+        sign_idx = int(lon // 30) % 12
+        deg_in_sign = lon % 30
+        state_idx = min(4, int(deg_in_sign // 6))
+        is_odd = (sign_idx % 2 == 0)
+        state = cls.BALADI_STATES_ODD[state_idx] if is_odd else cls.BALADI_STATES_EVEN[state_idx]
+        potency_info = cls.BALADI_POTENCY[state]
+        return {
+            "state": state,
+            "potency": potency_info["label"],
+            "multiplier": potency_info["multiplier"],
+            "degree_in_sign": round(deg_in_sign, 2),
+            "sign_type": "Odd" if is_odd else "Even"
+        }
+
+    @classmethod
+    def calculate_jagradadi(cls, dignity, friendship_level):
+        if dignity in ["Exalted", "Own Sign"]:
+            state = "Jāgraṭa"
+        elif dignity == "Debilitated" or friendship_level in ["Shatru", "Adhi Shatru", "Enemy"]:
+            state = "Suṣupti"
+        else:
+            state = "Swapna"
+        return {
+            "state": state,
+            "description": cls.JAGRADADI_DESCRIPTIONS[state]
+        }
+
+    @classmethod
+    def calculate_diptadi(cls, planet_name, dignity, friendship_level, sun_lon=None, planet_lon=None):
+        is_combust = False
+        if planet_name != "Sun" and sun_lon is not None and planet_lon is not None:
+            diff = abs(planet_lon - sun_lon) % 360
+            diff = min(diff, 360.0 - diff)
+            if diff <= 8.0:
+                is_combust = True
+
+        if is_combust:
+            state = "Vikala (Combust)"
+        elif dignity == "Exalted":
+            state = "Dīpta (Exalted)"
+        elif dignity == "Own Sign":
+            state = "Svastha (Own Sign)"
+        elif friendship_level == "Adhi Mitra":
+            state = "Mudita (Great Friend)"
+        elif friendship_level == "Mitra" or dignity == "Friendly Sign":
+            state = "Shānta (Friend)"
+        elif dignity == "Debilitated":
+            state = "Khala (Debilitated)"
+        elif friendship_level in ["Shatru", "Adhi Shatru"]:
+            state = "Dukhita (Enemy)"
+        else:
+            state = "Dīna (Neutral)"
+
+        return {"state": state, "is_combust": is_combust}
+
+    @classmethod
+    def calculate_shayanadi(cls, planet_name, planet_lon, lagna_lon=0.0):
+        p_idx = cls.PLANET_INDEX.get(planet_name, 1)
+        nak_p = int(planet_lon // (360.0 / 27.0)) + 1
+        nak_l = int(lagna_lon // (360.0 / 27.0)) + 1
+        val = (p_idx * nak_p * nak_l + 1) % 12
+        state = cls.SHAYANADI_STATES[val]
+        return {
+            "state": state,
+            "state_index": val + 1
+        }
+
+    @classmethod
+    def calculate_lajjitadi(cls, planet_name, house_num, conjoined_planets, aspecting_planets, dignity):
+        states = []
+        if dignity in ["Exalted", "Own Sign"]:
+            states.append("Garvita (Proud)")
+        if house_num == 5 and any(p in conjoined_planets for p in ["Rahu", "Ketu", "Sun", "Saturn", "Mars"]):
+            states.append("Lajjita (Embarrassed)")
+        if "Sun" in conjoined_planets and any(p in aspecting_planets for p in ["Saturn", "Mars", "Rahu", "Ketu"]):
+            states.append("Kṣubhita (Agitated)")
+        if dignity == "Debilitated" or any(p in aspecting_planets for p in ["Saturn", "Mars"]):
+            states.append("Kṣudhita (Hungry)")
+        if any(p in conjoined_planets for p in ["Jupiter", "Venus"]) or dignity == "Friendly Sign":
+            states.append("Mudita (Delighted)")
+            
+        if not states:
+            states.append("Sama (Balanced)")
+            
+        return {"states": states}
+
+    @classmethod
+    def get_planet_avasthas(cls, planet_name, planet_obj, chart, houses_dict, mode="Vedic Focus"):
+        is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        lon = planet_obj.sidereal_longitude if is_sid else planet_obj.tropical_longitude
+        house_num = planet_obj.vedic_house if is_sid else planet_obj.tropical_house
+        dignity = planet_obj.dignity
+        
+        lagna_lon = 0.0
+        if hasattr(houses_dict, "sidereal_ascendant") or hasattr(houses_dict, "tropical_ascendant"):
+            lagna_lon = houses_dict.sidereal_ascendant if is_sid else houses_dict.tropical_ascendant
+        elif isinstance(houses_dict, dict) and 1 in houses_dict:
+            h1 = houses_dict[1]
+            if isinstance(h1, dict):
+                lagna_lon = h1.get("sidereal_start", 0.0) if is_sid else h1.get("tropical_start", 0.0)
+            elif isinstance(h1, (int, float)):
+                lagna_lon = float(h1)
+        elif isinstance(houses_dict, (list, tuple)) and len(houses_dict) > 0:
+            lagna_lon = float(houses_dict[0])
+
+        sun_lon = None
+        if "Sun" in chart:
+            sun_lon = chart["Sun"].sidereal_longitude if is_sid else chart["Sun"].tropical_longitude
+
+        conjoined = []
+        aspecting = []
+        for other_name, other_obj in chart.items():
+            if other_name == planet_name:
+                continue
+            o_h = other_obj.vedic_house if is_sid else other_obj.tropical_house
+            if o_h and house_num and o_h == house_num:
+                conjoined.append(other_name)
+            if o_h and house_num and (house_num - o_h) % 12 == 6:
+                aspecting.append(other_name)
+
+        sign_idx = int(lon // 30) % 12
+        sign_name = AstroMath.ZODIAC_SIGNS[sign_idx]
+        sign_lord = ShadbalaEngine.LORDSHIPS.get(sign_name, "")
+        friendship_level = "Sama"
+        if sign_lord and sign_lord in chart and planet_name in FriendshipEngine.NATURAL:
+            h1 = house_num if house_num else 1
+            h2 = chart[sign_lord].vedic_house if is_sid else chart[sign_lord].tropical_house
+            if h2:
+                friendship_level = FriendshipEngine.get_panchadha_relationship(planet_name, sign_lord, h1, h2)
+
+        baladi = cls.calculate_baladi(lon)
+        jagradadi = cls.calculate_jagradadi(dignity, friendship_level)
+        diptadi = cls.calculate_diptadi(planet_name, dignity, friendship_level, sun_lon, lon)
+        shayanadi = cls.calculate_shayanadi(planet_name, lon, lagna_lon)
+        lajjitadi = cls.calculate_lajjitadi(planet_name, house_num, conjoined, aspecting, dignity)
+
+        return {
+            "baladi": baladi,
+            "jagradadi": jagradadi,
+            "diptadi": diptadi,
+            "shayanadi": shayanadi,
+            "lajjitadi": lajjitadi
+        }
+
+
 # --- 10. PLANETARY SYNTHESIS ENGINE ---
 class PlanetarySynthesisEngine:
     MINIMUM_REQUIREMENTS = {
@@ -2165,6 +2350,9 @@ class PlanetarySynthesisEngine:
             # Check if planet passes required minimum Shadbala
             passed = total_shadbala >= req_min
 
+            # Calculate Avasthas for synthesis
+            avasthas = AvasthaEngine.get_planet_avasthas(name, p, chart, local_sky, mode)
+
             synthesis_data[name] = {
                 "shadbala": {
                     "total": round(total_shadbala, 4),
@@ -2181,6 +2369,7 @@ class PlanetarySynthesisEngine:
                     "level": terrain_level,
                     "sign": sign_name
                 },
+                "avasthas": avasthas,
                 "takeaway": takeaway
             }
             
