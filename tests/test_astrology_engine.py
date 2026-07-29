@@ -132,6 +132,20 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertEqual(panchanga["karana"]["name"], "Gara")
         self.assertEqual(panchanga["vara"]["name"], "Thursday") # Birth at 19:15 after sunrise
 
+    def test_steve_jobs_vault_of_the_heavens_lahiri(self):
+        """
+        Verify Steve Jobs chart nakshatras under standard Lahiri (Ayanamsa=1)
+        as reported by Vault of the Heavens and traditional Vedic astrology.
+        """
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
+            year=1955, month=2, day=24, time_str="19:15", tz="America/Los_Angeles",
+            lat=37.7749, lon=-122.4194, mode="Tropical-Vedic", ayanamsa=1
+        )
+        self.assertEqual(panchanga["nakshatra"]["name"], "Uttara Bhadrapada")
+        self.assertEqual(chart["Moon"].nakshatra, "Uttara Bhadrapada")
+        self.assertEqual(chart["Sun"].nakshatra, "Shatabhisha")
+        self.assertEqual(chart["Mars"].nakshatra, "Ashwini")
+
         # --- Phase 1: Planetary Synthesis Verification ---
         self.assertEqual(synthesis["Sun"]["shadbala"]["level"], "Strong")
         self.assertEqual(synthesis["Sun"]["dignity"]["level"], "Neutral")

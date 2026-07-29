@@ -119,7 +119,7 @@ class AstroMath:
 
     @classmethod
     def get_nakshatra(cls, longitude):
-        return cls.NAKSHATRAS[int(longitude / 13.333333333333334) % 27]
+        return cls.NAKSHATRAS[int(((longitude % 360.0) * 27.0) / 360.0) % 27]
 
     @classmethod
     def get_house_placement(cls, longitude, houses_dict, is_sidereal=False):
@@ -1648,7 +1648,7 @@ class HTMLReporter:
 
     def generate_kota_chakra_svg(self):
         import math
-        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = False if self.mode == "Tropical Focus" else True
         
         # Find Moon nakshatra index
         moon_lon = 0.0
@@ -1729,7 +1729,7 @@ class HTMLReporter:
         return svg
 
     def generate_sarvatobhadra_chakra_svg(self):
-        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = False if self.mode == "Tropical Focus" else True
         
         east_naks = ["KR", "RO", "MR", "AR", "PU", "PY", "AS"]
         south_naks = ["MA", "PP", "UP", "HA", "CH", "SW", "VI"]
@@ -1822,7 +1822,7 @@ class HTMLReporter:
         return svg
 
     def generate_kurma_chakra_svg(self):
-        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = False if self.mode == "Tropical Focus" else True
         
         directions = {
             "Center (Madhya)": ["Krittika", "Rohini", "Mrigashira"],
