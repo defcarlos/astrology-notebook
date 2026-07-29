@@ -1371,9 +1371,24 @@ class HTMLReporter:
         with open(json_path, 'r', encoding='utf-8') as f:
             self.data = json.load(f)
         self.meta = self.data.get('metadata', {})
+        if 'settings' not in self.meta or not isinstance(self.meta['settings'], dict):
+            self.meta['settings'] = {}
+        settings = self.meta['settings']
+        if not settings.get('house_system_name'):
+            hsys = settings.get('house_system', 'W')
+            settings['house_system_name'] = "Placidus" if hsys == "P" else ("Equal" if hsys == "E" else "Whole Sign")
+        if not settings.get('ayanamsa_name'):
+            ay = settings.get('ayanamsa', 36)
+            settings['ayanamsa_name'] = "Lahiri" if ay == 1 else ("Galactic Center at 0 Mula (Wilhelm)" if ay == 36 else ("Raman" if ay == 3 else ("Fagan-Bradley" if ay == 0 else ("KP" if ay == 5 else f"Custom ({ay})"))))
         self.subject = self.data.get('subject', {})
         self.chart = self.data.get('astrological_chart', {})
-        self.mode = self.meta.get('settings', {}).get('report_mode', 'Everything')
+        if 'ascendant' in self.chart and isinstance(self.chart['ascendant'], dict):
+            asc = self.chart['ascendant']
+            if 'sidereal_nakshatra' not in asc and 'sidereal_longitude' in asc:
+                asc['sidereal_nakshatra'] = AstroMath.get_nakshatra(asc['sidereal_longitude'])
+            if 'tropical_degree_in_house' not in asc and 'tropical_longitude' in asc:
+                asc['tropical_degree_in_house'] = round(asc['tropical_longitude'] % 30, 4)
+        self.mode = settings.get('report_mode', 'Everything')
         
         with open(template_path, 'r', encoding='utf-8') as f:
             self.template = f.read()

@@ -404,7 +404,9 @@
                     <span class="meta-separator">|</span>
                     <strong>Coordinates:</strong> {{ subject.birth_data.latitude }}° N, {{ subject.birth_data.longitude }}° W
                     <span class="meta-separator">|</span>
-                    <strong>System:</strong> {{ meta.settings.house_system_name }} ({{ meta.settings.ayanamsa_name }})
+                    {% set hsys_label = meta.settings.house_system_name | default('') %}
+                    {% set ay_label = meta.settings.ayanamsa_name | default('') %}
+                    <strong>System:</strong> {{ hsys_label }}{% if ay_label %}{% if hsys_label %} {% endif %}({{ ay_label }}){% endif %}
                 </p>
             </section>
 
@@ -455,7 +457,7 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th scope="col">Planet</th>
+                                    <th scope="col">Planet / Point</th>
                                     <th scope="col">Sign (Tropical)</th>
                                     <th scope="col">House</th>
                                     <th scope="col">Degree</th>
@@ -465,6 +467,17 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                {% if chart.ascendant %}
+                                <tr>
+                                    <th scope="row">Ascendant (Lagna)</th>
+                                    <td>{{ chart.ascendant.tropical_sign | default('-') }}</td>
+                                    <td>1</td>
+                                    <td>{{ chart.ascendant.tropical_degree_in_house | default('-') }}°</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                    <td>{{ chart.ascendant.sidereal_nakshatra | default('-') }}</td>
+                                </tr>
+                                {% endif %}
                                 {% for p in chart.planets %}
                                 <tr>
                                     <th scope="row">{{ p.name }}</th>
