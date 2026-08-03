@@ -1254,7 +1254,6 @@ class VimshottariDashaEngine:
     
     def __init__(self, astro_time, moon_nakshatra, moon_sid_lon):
         import datetime
-        from dateutil.relativedelta import relativedelta
         
         sequence = ["Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury"]
         dasha_years = {name: y for name, y in self.DASHAS}
@@ -1268,18 +1267,32 @@ class VimshottariDashaEngine:
         
         first_lord, first_years = self.DASHAS[lord_idx]
         remaining_years = fraction_remaining * first_years
-        elapsed_years = first_years - remaining_years
         
-        birth_dt = datetime.datetime(astro_time.year, astro_time.month, astro_time.day)
-        mahadasha_start = birth_dt - datetime.timedelta(days=int(elapsed_years * 365.25))
+        # Parse birth datetime with exact time
+        h = getattr(astro_time, 'h', 0)
+        m = getattr(astro_time, 'm', 0)
+        s = getattr(astro_time, 's', 0)
+        if hasattr(astro_time, 'hour') and isinstance(astro_time.hour, str) and ':' in astro_time.hour:
+            parts = astro_time.hour.split(':')
+            h = int(parts[0])
+            m = int(parts[1]) if len(parts) > 1 else 0
+            s = int(parts[2]) if len(parts) > 2 else 0
+            
+        birth_dt = datetime.datetime(astro_time.year, astro_time.month, astro_time.day, h, m, s)
         
         dasha_periods = []
-        current_m_start = mahadasha_start
-        
+        current_m_start = birth_dt
         m_idx = lord_idx
+        
         for step in range(9):
             m_lord, m_years = self.DASHAS[m_idx]
-            current_m_end = current_m_start + relativedelta(years=m_years)
+            if step == 0:
+                eff_m_years = remaining_years
+            else:
+                eff_m_years = float(m_years)
+                
+            m_dur_days = eff_m_years * 365.25
+            current_m_end = current_m_start + datetime.timedelta(days=m_dur_days)
             
             antardashas = []
             current_a_start = current_m_start
@@ -1287,30 +1300,33 @@ class VimshottariDashaEngine:
             
             for a_lord in a_sequence:
                 a_years = dasha_years[a_lord]
-                a_dur = (m_years * a_years) / 120.0
-                a_months = int(a_dur * 12)
-                a_days = int(round((a_dur * 12 - a_months) * 30.436875))
-                current_a_end = current_a_start + relativedelta(months=a_months, days=a_days)
+                if step == 0:
+                    a_dur_days = (eff_m_years / first_years) * (first_years * a_years / 120.0) * 365.25
+                else:
+                    a_dur_days = (m_years * a_years / 120.0) * 365.25
+                    
+                current_a_end = current_a_start + datetime.timedelta(days=a_dur_days)
                 
                 pratyantardashas = []
                 current_p_start = current_a_start
                 p_sequence = [sequence[(sequence.index(a_lord) + i) % 9] for i in range(9)]
                 
                 for p_lord in p_sequence:
-                    p_years = dasha_years[p_lord]
-                    p_dur = (m_years * a_years * p_years) / 14400.0
-                    p_months = int(p_dur * 12)
-                    p_days = int(round((p_dur * 12 - p_months) * 30.436875))
-                    current_p_end = current_p_start + relativedelta(months=p_months, days=p_days)
+                    if step == 0:
+                        p_dur_days = (eff_m_years / first_years) * (first_years * a_years * dasha_years[p_lord] / 14400.0) * 365.25
+                    else:
+                        p_dur_days = (m_years * a_years * dasha_years[p_lord] / 14400.0) * 365.25
+                        
+                    current_p_end = current_p_start + datetime.timedelta(days=p_dur_days)
                     
                     pratyantardashas.append({
                         "lord": p_lord,
                         "start": current_p_start.strftime("%Y-%m-%d"),
                         "end": current_p_end.strftime("%Y-%m-%d"),
-                        "duration_days": int(p_dur * 365.25)
+                        "duration_days": round(p_dur_days, 1)
                     })
                     current_p_start = current_p_end
-                
+                    
                 antardashas.append({
                     "lord": a_lord,
                     "start": current_a_start.strftime("%Y-%m-%d"),
@@ -1319,37 +1335,11 @@ class VimshottariDashaEngine:
                 })
                 current_a_start = current_a_end
                 
-            if step == 0:
-                filtered_antardashas = []
-                for a in antardashas:
-                    a_end = datetime.datetime.strptime(a["end"], "%Y-%m-%d")
-                    if a_end > birth_dt:
-                        a_start = datetime.datetime.strptime(a["start"], "%Y-%m-%d")
-                        if a_start < birth_dt:
-                            a["start"] = birth_dt.strftime("%Y-%m-%d")
-                            
-                        filtered_pratyantardashas = []
-                        for p in a["pratyantardashas"]:
-                            p_end = datetime.datetime.strptime(p["end"], "%Y-%m-%d")
-                            if p_end > birth_dt:
-                                p_start = datetime.datetime.strptime(p["start"], "%Y-%m-%d")
-                                if p_start < birth_dt:
-                                    p["start"] = birth_dt.strftime("%Y-%m-%d")
-                                filtered_pratyantardashas.append(p)
-                        a["pratyantardashas"] = filtered_pratyantardashas
-                        filtered_antardashas.append(a)
-                antardashas = filtered_antardashas
-                display_start = birth_dt
-                display_duration = remaining_years
-            else:
-                display_start = current_m_start
-                display_duration = m_years
-                
             dasha_periods.append({
                 "lord": m_lord,
-                "start": display_start.strftime("%Y-%m-%d"),
+                "start": current_m_start.strftime("%Y-%m-%d"),
                 "end": current_m_end.strftime("%Y-%m-%d"),
-                "duration_years": round(display_duration, 2),
+                "duration_years": round(eff_m_years, 2),
                 "antardashas": antardashas
             })
             current_m_start = current_m_end
