@@ -132,10 +132,23 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertEqual(panchanga["karana"]["name"], "Gara")
         self.assertEqual(panchanga["vara"]["name"], "Thursday") # Birth at 19:15 after sunrise
 
-    def test_steve_jobs_vault_of_the_heavens_lahiri(self):
+    def test_steve_jobs_vault_of_the_heavens_wilhelm(self):
         """
-        Verify Steve Jobs chart nakshatras under standard Lahiri (Ayanamsa=1)
-        as reported by Vault of the Heavens and traditional Vedic astrology.
+        Verify Steve Jobs chart nakshatras under Ernst Wilhelm's Vault of the Heavens system
+        (Galactic Center at 0 Mula, Ayanamsa=36).
+        """
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
+            year=1955, month=2, day=24, time_str="19:15", tz="America/Los_Angeles",
+            lat=37.7749, lon=-122.4194, mode="Tropical-Vedic", ayanamsa=36
+        )
+        self.assertEqual(panchanga["nakshatra"]["name"], "Revati")
+        self.assertEqual(chart["Moon"].nakshatra, "Revati")
+        self.assertEqual(chart["Mercury"].nakshatra, "Dhanishta")
+        self.assertEqual(chart["Rahu"].nakshatra, "Purva Ashadha")
+
+    def test_steve_jobs_standard_lahiri(self):
+        """
+        Verify Steve Jobs chart nakshatras under standard Lahiri (Ayanamsa=1).
         """
         chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
             year=1955, month=2, day=24, time_str="19:15", tz="America/Los_Angeles",
@@ -145,6 +158,8 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertEqual(chart["Moon"].nakshatra, "Uttara Bhadrapada")
         self.assertEqual(chart["Sun"].nakshatra, "Shatabhisha")
         self.assertEqual(chart["Mars"].nakshatra, "Ashwini")
+        self.assertEqual(chart["Mercury"].nakshatra, "Shravana")
+        self.assertEqual(chart["Rahu"].nakshatra, "Mula")
 
         # --- Phase 1: Planetary Synthesis Verification ---
         self.assertEqual(synthesis["Sun"]["shadbala"]["level"], "Strong")
