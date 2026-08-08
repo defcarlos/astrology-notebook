@@ -1263,9 +1263,11 @@ class VimshottariDashaEngine:
         
         nak_span = 13.333333333333334
         offset_in_nak = moon_sid_lon % nak_span
-        fraction_remaining = (nak_span - offset_in_nak) / nak_span
+        fraction_elapsed = offset_in_nak / nak_span
+        fraction_remaining = 1.0 - fraction_elapsed
         
         first_lord, first_years = self.DASHAS[lord_idx]
+        elapsed_years = fraction_elapsed * first_years
         remaining_years = fraction_remaining * first_years
         
         # Parse birth datetime with exact time
@@ -1280,18 +1282,18 @@ class VimshottariDashaEngine:
             
         birth_dt = datetime.datetime(astro_time.year, astro_time.month, astro_time.day, h, m, s)
         
+        # True start of the first Mahadasha before birth
+        first_m_start = birth_dt - datetime.timedelta(days=elapsed_years * 365.25)
+        
         dasha_periods = []
-        current_m_start = birth_dt
-        m_idx = lord_idx
+        current_m_start = first_m_start
         
         for step in range(9):
+            m_idx = (lord_idx + step) % 9
             m_lord, m_years = self.DASHAS[m_idx]
-            if step == 0:
-                eff_m_years = remaining_years
-            else:
-                eff_m_years = float(m_years)
+            eff_m_years = remaining_years if step == 0 else float(m_years)
                 
-            m_dur_days = eff_m_years * 365.25
+            m_dur_days = m_years * 365.25
             current_m_end = current_m_start + datetime.timedelta(days=m_dur_days)
             
             antardashas = []
@@ -1300,11 +1302,7 @@ class VimshottariDashaEngine:
             
             for a_lord in a_sequence:
                 a_years = dasha_years[a_lord]
-                if step == 0:
-                    a_dur_days = (eff_m_years / first_years) * (first_years * a_years / 120.0) * 365.25
-                else:
-                    a_dur_days = (m_years * a_years / 120.0) * 365.25
-                    
+                a_dur_days = (m_years * a_years / 120.0) * 365.25
                 current_a_end = current_a_start + datetime.timedelta(days=a_dur_days)
                 
                 pratyantardashas = []
@@ -1312,11 +1310,7 @@ class VimshottariDashaEngine:
                 p_sequence = [sequence[(sequence.index(a_lord) + i) % 9] for i in range(9)]
                 
                 for p_lord in p_sequence:
-                    if step == 0:
-                        p_dur_days = (eff_m_years / first_years) * (first_years * a_years * dasha_years[p_lord] / 14400.0) * 365.25
-                    else:
-                        p_dur_days = (m_years * a_years * dasha_years[p_lord] / 14400.0) * 365.25
-                        
+                    p_dur_days = (m_years * a_years * dasha_years[p_lord] / 14400.0) * 365.25
                     current_p_end = current_p_start + datetime.timedelta(days=p_dur_days)
                     
                     pratyantardashas.append({
@@ -1343,7 +1337,6 @@ class VimshottariDashaEngine:
                 "antardashas": antardashas
             })
             current_m_start = current_m_end
-            m_idx = (m_idx + 1) % 9
             
         self.dasha_periods = dasha_periods
 

@@ -161,6 +161,21 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertEqual(chart["Mercury"].nakshatra, "Shravana")
         self.assertEqual(chart["Rahu"].nakshatra, "Mula")
 
+    def test_steve_jobs_raman_dasha(self):
+        """
+        Verify Steve Jobs chart Vimshottari Dasha under Raman Ayanamsa (Ayanamsa=3),
+        where Saturn balance is ~1 year and Mercury Mahadasha starts on 1956-03-01 (1/3/1956).
+        """
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
+            year=1955, month=2, day=24, time_str="19:15", tz="America/Los_Angeles",
+            lat=37.7749, lon=-122.4194, mode="Tropical-Vedic", ayanamsa=3
+        )
+        from astrology_engine import VimshottariDashaEngine, AstroTime
+        t3 = AstroTime(1955, 2, 24, "19:15", "America/Los_Angeles", sid_mode=3)
+        vd3 = VimshottariDashaEngine(t3, chart["Moon"].nakshatra, chart["Moon"].sidereal_longitude)
+        merc_dasha = [d for d in vd3.dasha_periods if d["lord"] == "Mercury"][0]
+        self.assertEqual(merc_dasha["start"], "1956-02-28")
+
         # --- Phase 1: Planetary Synthesis Verification ---
         self.assertEqual(synthesis["Sun"]["shadbala"]["level"], "Strong")
         self.assertEqual(synthesis["Sun"]["dignity"]["level"], "Neutral")
