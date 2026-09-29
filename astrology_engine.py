@@ -1,15 +1,26 @@
-import os
+from __future__ import annotations
+
 import json
-import yaml
-import hashlib
-import shutil
-import types
-from datetime import datetime, timezone, timedelta
+import threading
+from dataclasses import dataclass, field
+from datetime import date, datetime, timezone, timedelta
+from pathlib import Path
+from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import swisseph as swe
+
+# Thread lock for Swiss Ephemeris C-level global state (Python 3.14 free-threading safety)
+_swe_lock = threading.Lock()
+
+# PEP 695 type aliases (Python 3.12+)
+type PlanetMap = dict[str, Planet]
+type HouseMap = dict[int, dict[str, float]]
+type AspectMap = dict[str, list[dict[str, Any]]]
+type AvasthaMap = dict[str, Any]
 
 # --- 1. CORE TIME & COORDINATE ENGINES (SELF-CONTAINED) ---
 class AstroTime:
-    def __init__(self, year, month, day, hour: float | str, tz: float | str, sid_mode: str | int = "Lahiri"):
+    def __init__(self, year: int, month: int, day: int, hour: float | str, tz: float | str, sid_mode: str | int = "Lahiri") -> None:
         # Local time to UTC conversion
         self.year = year
         self.month = month
@@ -39,16 +50,15 @@ class AstroTime:
             m %= 60
 
         if isinstance(tz, str):
-            from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
             dt_naive = datetime(year, month, day, h, m, s)
             try:
                 tz_obj = ZoneInfo(tz)
-            except ZoneInfoNotFoundError:
+            except ZoneInfoNotFoundError as e:
                 raise ZoneInfoNotFoundError(
                     f"Timezone '{tz}' was not found in the timezone database. "
                     "If you are running in Google Colab, you must install the 'tzdata' package. "
                     "You can do this by running `!pip install tzdata` in a code cell and then restarting the runtime."
-                )
+                ) from e
             dt_local = dt_naive.replace(tzinfo=tz_obj)
             dt_utc = dt_local.astimezone(timezone.utc)
             dec_hour_utc = dt_utc.hour + dt_utc.minute/60.0 + dt_utc.second/3600.0
@@ -59,7 +69,7 @@ class AstroTime:
             dec_hour_utc = dt_utc.hour + dt_utc.minute/60.0 + dt_utc.second/3600.0
             self.jd = swe.julday(dt_utc.year, dt_utc.month, dt_utc.day, dec_hour_utc)
         
-        # Configure Swiss Ephemeris Ayanamsa mode
+        # Configure Swiss Ephemeris Ayanamsa mode (thread-synchronized for Python 3.14 free-threading)
         ayanamsas = {
             "Lahiri": swe.SIDM_LAHIRI,
             "Raman": swe.SIDM_RAMAN,
@@ -73,7 +83,8 @@ class AstroTime:
             mode_const = sid_mode
         else:
             mode_const = ayanamsas.get(sid_mode, swe.SIDM_LAHIRI)
-        swe.set_sid_mode(mode_const)
+        with _swe_lock:
+            swe.set_sid_mode(mode_const)
 
 class HouseEngine:
     def __init__(self, astro_time, lat, lon, house_system="W"):
@@ -373,23 +384,53 @@ class VargaEngine:
     def calculate_d60(lon):
         return AstroMath.ZODIAC_SIGNS[(int(lon // 30) + int((lon % 30) // 0.5)) % 12]
 
+@dataclass(slots=True)
 class Planet:
-    def __init__(self, name, swe_const, astro_time, mode="Everything", base_planet=None):
-        self.name, self.jd = name, astro_time.jd
-        self.tropical_house: int | None = None
-        self.vedic_house: int | None = None
-        self.shadbala: dict | None = None
+    name: str
+    tropical_longitude: float = 0.0
+    sidereal_longitude: float = 0.0
+    tropical_speed: float = 0.0
+    sidereal_speed: float = 0.0
+    zodiac_sign: str = ""
+    sidereal_sign: str = ""
+    nakshatra: str = ""
+    dignity: str = "Neutral"
+    tropical_dignity: str = "Neutral"
+    sidereal_dignity: str = "Neutral"
+    vargas: dict[str, str] = field(default_factory=dict)
+    tropical_house: int | None = None
+    vedic_house: int | None = None
+    shadbala: dict[str, Any] | None = None
+    avasthas: dict[str, Any] = field(default_factory=dict)
+    jd: float = 0.0
+
+    def __init__(
+        self,
+        name: str,
+        swe_const: int | None,
+        astro_time: AstroTime,
+        mode: str = "Everything",
+        base_planet: Planet | None = None
+    ) -> None:
+        self.name = name
+        self.jd = astro_time.jd
+        self.tropical_house = None
+        self.vedic_house = None
+        self.shadbala = None
+        self.avasthas = {}
+
         if base_planet:
             self.tropical_longitude = (base_planet.tropical_longitude + 180) % 360
             self.tropical_speed = base_planet.tropical_speed
             self.sidereal_longitude = (base_planet.sidereal_longitude + 180) % 360
             self.sidereal_speed = base_planet.sidereal_speed
         else:
-            t_d = swe.calc_ut(self.jd, swe_const, swe.FLG_SPEED)[0]
+            with _swe_lock:
+                t_d = swe.calc_ut(self.jd, swe_const, swe.FLG_SPEED)[0]
+                s_d = swe.calc_ut(self.jd, swe_const, swe.FLG_SIDEREAL | swe.FLG_SPEED)[0]
             self.tropical_longitude, self.tropical_speed = t_d[0], t_d[3]
-            s_d = swe.calc_ut(self.jd, swe_const, swe.FLG_SIDEREAL | swe.FLG_SPEED)[0]
             self.sidereal_longitude, self.sidereal_speed = s_d[0], s_d[3]
-            
+
         self.zodiac_sign = AstroMath.get_zodiac(self.tropical_longitude)
         self.sidereal_sign = AstroMath.get_zodiac(self.sidereal_longitude)
         self.nakshatra = AstroMath.get_nakshatra(self.sidereal_longitude)
@@ -908,7 +949,7 @@ class YogaEngine:
             try:
                 house = int(expr[7:-1])
                 return [cls.get_lord_of_house(house, lagna_sign)]
-            except:
+            except (ValueError, IndexError):
                 pass
                 
         if expr.startswith("DispositorOf("):
@@ -1057,26 +1098,20 @@ class YogaEngine:
         return None
 
     @classmethod
-    def evaluate_operator(cls, actual, op, expected):
-        if op == "EQUALS":
-            return actual == expected
-        if op == "NOT_EQUALS":
-            return actual != expected
-        if op == "IN":
-            if isinstance(expected, list):
-                return actual in expected
-            return actual == expected
-        if op == "NOT_IN":
-            if isinstance(expected, list):
-                return actual not in expected
-            return actual != expected
-        if op == "CONTAINS":
-            if isinstance(actual, (list, set)):
-                return expected in actual
-            if isinstance(actual, str):
-                return expected in actual
-            return False
-        return False
+    def evaluate_operator(cls, actual: Any, op: str, expected: Any) -> bool:
+        match op:
+            case "EQUALS":
+                return actual == expected
+            case "NOT_EQUALS":
+                return actual != expected
+            case "IN":
+                return actual in expected if isinstance(expected, list) else actual == expected
+            case "NOT_IN":
+                return actual not in expected if isinstance(expected, list) else actual != expected
+            case "CONTAINS":
+                return expected in actual if isinstance(actual, (list, set, str)) else False
+            case _:
+                return False
 
     @classmethod
     def evaluate_rule(cls, rule, chart, lagna_sign, is_sid, bindings, subject_profile=None):
@@ -1161,24 +1196,18 @@ class YogaEngine:
             return passed, matching_candidates if passed else []
 
     @classmethod
-    def scan_yogas(cls, chart, local_sky, mode, rules_path, subject_profile=None):
-        import json
-        import os
-        
+    def scan_yogas(cls, chart, local_sky, mode: str, rules_path: str | Path, subject_profile: dict | None = None) -> dict[str, Any]:
+        rules_p = Path(rules_path)
         yogas_list = []
-        if os.path.isdir(rules_path):
-            for fn in sorted(os.listdir(rules_path)):
-                if fn.endswith('.json'):
-                    path = os.path.join(rules_path, fn)
-                    with open(path, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        yogas_list.extend(data.get("yogas", []))
-        else:
-            if not os.path.exists(rules_path):
-                raise FileNotFoundError(f"Yoga rules file not found: {rules_path}")
-            with open(rules_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+        if rules_p.is_dir():
+            for p in sorted(rules_p.glob("*.json")):
+                data = json.loads(p.read_text(encoding="utf-8"))
                 yogas_list.extend(data.get("yogas", []))
+        elif rules_p.is_file():
+            data = json.loads(rules_p.read_text(encoding="utf-8"))
+            yogas_list.extend(data.get("yogas", []))
+        else:
+            raise FileNotFoundError(f"Yoga rules file not found: {rules_path}")
                 
         is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
         lagna_sign = local_sky.sidereal_ascendant_sign if is_sid else local_sky.tropical_ascendant_sign
@@ -1253,8 +1282,6 @@ class VimshottariDashaEngine:
     ]
     
     def __init__(self, astro_time, moon_nakshatra, moon_sid_lon):
-        import datetime
-        
         sequence = ["Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury"]
         dasha_years = {name: y for name, y in self.DASHAS}
         
@@ -1280,10 +1307,10 @@ class VimshottariDashaEngine:
             m = int(parts[1]) if len(parts) > 1 else 0
             s = int(parts[2]) if len(parts) > 2 else 0
             
-        birth_dt = datetime.datetime(astro_time.year, astro_time.month, astro_time.day, h, m, s)
+        birth_dt = datetime(astro_time.year, astro_time.month, astro_time.day, h, m, s)
         
         # True start of the first Mahadasha before birth
-        first_m_start = birth_dt - datetime.timedelta(days=elapsed_years * 365.25)
+        first_m_start = birth_dt - timedelta(days=elapsed_years * 365.25)
         
         dasha_periods = []
         current_m_start = first_m_start
@@ -1294,7 +1321,7 @@ class VimshottariDashaEngine:
             eff_m_years = remaining_years if step == 0 else float(m_years)
                 
             m_dur_days = m_years * 365.25
-            current_m_end = current_m_start + datetime.timedelta(days=m_dur_days)
+            current_m_end = current_m_start + timedelta(days=m_dur_days)
             
             antardashas = []
             current_a_start = current_m_start
@@ -1303,7 +1330,7 @@ class VimshottariDashaEngine:
             for a_lord in a_sequence:
                 a_years = dasha_years[a_lord]
                 a_dur_days = (m_years * a_years / 120.0) * 365.25
-                current_a_end = current_a_start + datetime.timedelta(days=a_dur_days)
+                current_a_end = current_a_start + timedelta(days=a_dur_days)
                 
                 pratyantardashas = []
                 current_p_start = current_a_start
@@ -1311,7 +1338,7 @@ class VimshottariDashaEngine:
                 
                 for p_lord in p_sequence:
                     p_dur_days = (m_years * a_years * dasha_years[p_lord] / 14400.0) * 365.25
-                    current_p_end = current_p_start + datetime.timedelta(days=p_dur_days)
+                    current_p_end = current_p_start + timedelta(days=p_dur_days)
                     
                     pratyantardashas.append({
                         "lord": p_lord,
@@ -1349,20 +1376,25 @@ class HTMLReporter:
         "Shatabhisha", "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
     ]
 
-    def __init__(self, json_path, template_path):
-        import json
-        with open(json_path, 'r', encoding='utf-8') as f:
-            self.data = json.load(f)
+    def __init__(self, json_path: str | Path, template_path: str | Path) -> None:
+        self.data = json.loads(Path(json_path).read_text(encoding="utf-8"))
         self.meta = self.data.get('metadata', {})
         if 'settings' not in self.meta or not isinstance(self.meta['settings'], dict):
             self.meta['settings'] = {}
         settings = self.meta['settings']
         if not settings.get('house_system_name'):
-            hsys = settings.get('house_system', 'W')
-            settings['house_system_name'] = "Placidus" if hsys == "P" else ("Equal" if hsys == "E" else "Whole Sign")
+            match settings.get('house_system', 'W'):
+                case 'P': settings['house_system_name'] = "Placidus"
+                case 'E': settings['house_system_name'] = "Equal"
+                case _:   settings['house_system_name'] = "Whole Sign"
         if not settings.get('ayanamsa_name'):
-            ay = settings.get('ayanamsa', 36)
-            settings['ayanamsa_name'] = "Lahiri" if ay == 1 else ("Galactic Center at 0 Mula (Wilhelm)" if ay == 36 else ("Raman" if ay == 3 else ("Fagan-Bradley" if ay == 0 else ("KP" if ay == 5 else f"Custom ({ay})"))))
+            match settings.get('ayanamsa', 36):
+                case 36: settings['ayanamsa_name'] = "Galactic Center at 0 Mula (Wilhelm)"
+                case 1:  settings['ayanamsa_name'] = "Lahiri"
+                case 3:  settings['ayanamsa_name'] = "Raman"
+                case 0:  settings['ayanamsa_name'] = "Fagan-Bradley"
+                case 5:  settings['ayanamsa_name'] = "KP"
+                case ay: settings['ayanamsa_name'] = f"Custom ({ay})"
         self.subject = self.data.get('subject', {})
         self.chart = self.data.get('astrological_chart', {})
         if 'ascendant' in self.chart and isinstance(self.chart['ascendant'], dict):
@@ -1373,8 +1405,7 @@ class HTMLReporter:
                 asc['tropical_degree_in_house'] = round(asc['tropical_longitude'] % 30, 4)
         self.mode = settings.get('report_mode', 'Everything')
         
-        with open(template_path, 'r', encoding='utf-8') as f:
-            self.template = f.read()
+        self.template = Path(template_path).read_text(encoding="utf-8")
 
     def generate_south_chart_svg(self):
         cells = [
@@ -1894,7 +1925,6 @@ class HTMLReporter:
         return svg
 
     def compile_report(self, output_path):
-        import datetime
         from jinja2 import Template
         
         friendship_mapping = {
@@ -1919,14 +1949,15 @@ class HTMLReporter:
             kota_chakra_svg=self.generate_kota_chakra_svg(),
             sarvatobhadra_chakra_svg=self.generate_sarvatobhadra_chakra_svg(),
             kurma_chakra_svg=self.generate_kurma_chakra_svg(),
-            today=datetime.datetime.now().strftime("%Y-%m-%d"),
+            today=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             zodiac_signs=AstroMath.ZODIAC_SIGNS,
             classical_planets=["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"],
             friendship_mapping=friendship_mapping
         )
         
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(rendered_html)
+        out_p = Path(output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        out_p.write_text(rendered_html, encoding='utf-8')
 
 
 # --- 8. JAIMINI SYSTEM ENGINES ---
@@ -1987,7 +2018,6 @@ class PanchangaEngine:
 
     @classmethod
     def calculate_panchanga(cls, astro_time, chart, lat, lon):
-        import datetime
         # Moon and Sun longitudes in sidereal frame
         sun_lon = chart["Sun"].sidereal_longitude
         moon_lon = chart["Moon"].sidereal_longitude
@@ -2027,7 +2057,7 @@ class PanchangaEngine:
             karana_name = cls.KARANA_NAMES[(k_idx - 1) % 7]
             
         # Weekday calculation with Sunrise adjustment
-        b_date = datetime.date(astro_time.year, astro_time.month, astro_time.day)
+        b_date = date(astro_time.year, astro_time.month, astro_time.day)
         
         try:
             # Calculate local midnight Julian Day to search forward from
@@ -2040,7 +2070,7 @@ class PanchangaEngine:
             
         if sunrise_jd is not None and astro_time.jd < sunrise_jd:
             # Born before sunrise, belongs to previous Vedic day
-            vedic_date = b_date - datetime.timedelta(days=1)
+            vedic_date = b_date - timedelta(days=1)
         else:
             vedic_date = b_date
             
@@ -2492,5 +2522,336 @@ class AspectEngine:
             "jaimini": jaimini,
             "tajika": tajika
         }
+
+
+# --- 12. LLM CONTEXT & SLM OPTIMIZED EXPORTERS ---
+class LLMContextExporter:
+    """
+    Exports astrological chart data into ultra-compact, high-density formats
+    tailored specifically for Small Local Models (SLMs like Gemma 4B, Qwen 9B).
+    Generates structured Markdown (.md) for direct prompt injection and a lean
+    JSON (.json) representation, preserving traditional classical yoga results.
+    """
+    KARAKA_SHORT_CODES = {
+        "Atmakaraka": "AK",
+        "Amatyakaraka": "AmK",
+        "Bhratrukaraka": "BK",
+        "Matrukaraka": "MK",
+        "Putrakaraka": "PK",
+        "Jnatikaraka": "GK",
+        "Darakaraka": "DK"
+    }
+
+    def __init__(
+        self,
+        subject_profile: dict,
+        chart: dict,
+        local_sky,
+        report_mode: str = "Tropical-Vedic",
+        yogas: dict | None = None,
+        dasha_periods: list | None = None,
+        transits: dict | None = None,
+        panchanga: dict | None = None,
+        ashtakavarga: dict | None = None,
+        jaimini_karakas: dict | None = None,
+        planetary_synthesis: dict | None = None,
+        planetary_aspects: dict | None = None
+    ):
+        self.subject = subject_profile or {}
+        self.chart = chart or {}
+        self.local_sky = local_sky
+        self.report_mode = report_mode
+        self.yogas = yogas or {}
+        self.dasha_periods = dasha_periods or []
+        self.transits = transits or {}
+        self.panchanga = panchanga or {}
+        self.ashtakavarga = ashtakavarga or {}
+        self.jaimini_karakas = jaimini_karakas or {}
+        self.planetary_synthesis = planetary_synthesis or {}
+        self.planetary_aspects = planetary_aspects or {}
+
+    def get_current_dasha(self, target_date_str: str | None = None) -> tuple[dict, str | None]:
+        today_str = target_date_str or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        current_dasha = {}
+        next_antardasha = None
+
+        for m in self.dasha_periods:
+            m_start = m.get("start", "")
+            m_end = m.get("end", "")
+            if m_start <= today_str <= m_end:
+                current_dasha["mahadasha"] = {
+                    "lord": m.get("lord"), "start": m_start, "end": m_end
+                }
+                antardashas = m.get("antardashas", [])
+                for i, a in enumerate(antardashas):
+                    a_start = a.get("start", "")
+                    a_end = a.get("end", "")
+                    if a_start <= today_str <= a_end:
+                        current_dasha["antardasha"] = {
+                            "lord": a.get("lord"), "start": a_start, "end": a_end
+                        }
+                        for p in a.get("pratyantardashas", []):
+                            p_start = p.get("start", "")
+                            p_end = p.get("end", "")
+                            if p_start <= today_str <= p_end:
+                                current_dasha["pratyantardasha"] = {
+                                    "lord": p.get("lord"), "start": p_start, "end": p_end
+                                }
+                                break
+                        if i + 1 < len(antardashas):
+                            next_a = antardashas[i + 1]
+                            next_antardasha = f"{m.get('lord')}-{next_a.get('lord')} (begins {next_a.get('start')})"
+                        break
+                break
+
+        return current_dasha, next_antardasha
+
+    def generate_markdown(self) -> str:
+        name = self.subject.get("name", "Unknown Subject")
+        birth = self.subject.get("birth_data", {})
+        date_str = birth.get("date", "")
+        time_str = birth.get("time", "")
+        tz_str = birth.get("timezone", "")
+
+        is_sid = self.report_mode not in ["Tropical-Vedic", "Tropical Focus"]
+        asc_sign = self.local_sky.sidereal_ascendant_sign if is_sid else self.local_sky.tropical_ascendant_sign
+        asc_lon = self.local_sky.sidereal_ascendant if is_sid else self.local_sky.tropical_ascendant
+        asc_deg = round(AstroMath.get_degree_in_house(asc_lon, 1, self.local_sky.houses, is_sid), 1)
+
+        tithi_p = self.panchanga.get("tithi", {})
+        tithi_str = f"{tithi_p.get('paksha', '')} {tithi_p.get('name', '')}".strip()
+        nak_name = self.panchanga.get("nakshatra", {}).get("name", "")
+        vara_name = self.panchanga.get("vara", {}).get("name", "")
+        panchanga_summary = f"{tithi_str}, {nak_name} Nakshatra, {vara_name}" if tithi_str else "N/A"
+
+        md_lines = [
+            f"# Natal Chart: {name} ({date_str} {time_str}, {tz_str})",
+            f"**Ascendant (Lagna):** {asc_sign} {asc_deg}° | **Panchanga:** {panchanga_summary}"
+        ]
+
+        current_dasha, next_antardasha = self.get_current_dasha()
+        if current_dasha:
+            m_lord = current_dasha.get("mahadasha", {}).get("lord", "")
+            a_lord = current_dasha.get("antardasha", {}).get("lord", "")
+            p_obj = current_dasha.get("pratyantardasha", {})
+            p_lord = p_obj.get("lord", "")
+            p_end = p_obj.get("end", "")
+            dasha_line = f"**Current Dasha:** {m_lord}-{a_lord}-{p_lord} (ends {p_end})"
+            if next_antardasha:
+                dasha_line += f" | **Next:** {next_antardasha}"
+            md_lines.append(dasha_line)
+
+        # Build karaka lookup
+        karaka_map = {}
+        for p, kdata in self.jaimini_karakas.items():
+            full_role = kdata.get("role", "")
+            base_role = full_role.split(" ")[0] if full_role else ""
+            karaka_map[p] = self.KARAKA_SHORT_CODES.get(base_role, base_role)
+
+        # Planetary table
+        md_lines.extend([
+            "\n### Planetary Positions & Strength",
+            "| Planet | Sign | House | Deg | Nakshatra | Dignity | Power (Bala) | D9 Navamsha | Karaka | Avasthas |",
+            "|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|"
+        ])
+
+        for p_name, p_obj in self.chart.items():
+            sign = p_obj.sidereal_sign if is_sid else p_obj.zodiac_sign
+            house = p_obj.vedic_house if is_sid else p_obj.tropical_house
+            lon = p_obj.sidereal_longitude if is_sid else p_obj.tropical_longitude
+            deg = round(AstroMath.get_degree_in_house(lon, house, self.local_sky.houses, is_sid), 1)
+
+            synth = self.planetary_synthesis.get(p_name, {})
+            bala_lvl = synth.get("shadbala", {}).get("level", "")
+            bala_total = p_obj.shadbala.get("shadbala_total") if p_obj.shadbala else None
+            power_str = f"{bala_lvl} ({round(bala_total, 1)})" if bala_total is not None else "N/A"
+
+            d9_val = p_obj.vargas.get("D9", "-")
+            karaka_val = karaka_map.get(p_name, "-")
+
+            avasthas = getattr(p_obj, "avasthas", {})
+            if not avasthas:
+                avasthas = synth.get("avasthas", {})
+            av_list = []
+            if avasthas:
+                if "baladi" in avasthas and "state" in avasthas["baladi"]:
+                    av_list.append(avasthas["baladi"]["state"])
+                if "jagradadi" in avasthas and "state" in avasthas["jagradadi"]:
+                    av_list.append(avasthas["jagradadi"]["state"])
+            av_str = ", ".join(av_list) if av_list else "-"
+
+            md_lines.append(
+                f"| {p_name} | {sign} | {house} | {deg}° | {p_obj.nakshatra} | {p_obj.dignity} | {power_str} | {d9_val} | {karaka_val} | {av_str} |"
+            )
+
+        # Active Yogas with Traditional Interpretive Results
+        md_lines.extend(["\n### Active Classical Yogas & Traditional Results"])
+        active_found = False
+        for y_name, y_data in self.yogas.items():
+            if y_data.get("active"):
+                active_found = True
+                details_raw = y_data.get("details", "")
+                if "Matching planets:" in details_raw:
+                    planets_matched = details_raw.replace("Matching planets:", "").strip().rstrip(".")
+                else:
+                    planets_matched = details_raw.strip().rstrip(".") or "Chart"
+                results_text = y_data.get("results", "Favorable classical combination.")
+                md_lines.append(f"- **{y_name}** ({planets_matched}): {results_text}")
+
+        if not active_found:
+            md_lines.append("- No primary classical yogas active.")
+
+        # Key Aspects & Transits
+        seen_aspects = set()
+        aspect_list = []
+        for p1, targets in self.planetary_aspects.get("tajika", {}).items():
+            for t in targets:
+                p2 = t.get("target")
+                pair = tuple(sorted([p1, p2]))
+                if pair not in seen_aspects:
+                    seen_aspects.add(pair)
+                    asp_name = t.get("aspect", "").lower()
+                    orb = round(t.get("orb", 0.0), 1)
+                    aspect_list.append(f"{pair[0]} {asp_name} {pair[1]} (orb {orb}°)")
+
+        transits_summary_items = []
+        for p, d in self.transits.items():
+            h = d.get("house_from_moon", "")
+            sign_t = d.get("transit_sign", "")
+            star = "*" if d.get("is_auspicious") else ""
+            transits_summary_items.append(f"{p}: {sign_t} (H{h}{star})")
+
+        sav_list = self.ashtakavarga.get("sav", [])
+
+        md_lines.extend([
+            "\n### Key Aspects & Transits",
+            f"- **Aspects:** {', '.join(aspect_list[:8]) if aspect_list else 'None prominent'}",
+            f"- **Transits from Moon (*=Auspicious):** {' | '.join(transits_summary_items[:6]) if transits_summary_items else 'None'}",
+            f"- **SAV Bindus (Houses 1-12):** {sav_list}"
+        ])
+
+        return "\n".join(md_lines)
+
+    def generate_lean_json(self) -> dict:
+        name = self.subject.get("name", "Unknown Subject")
+        birth = self.subject.get("birth_data", {})
+        is_sid = self.report_mode not in ["Tropical-Vedic", "Tropical Focus"]
+        asc_sign = self.local_sky.sidereal_ascendant_sign if is_sid else self.local_sky.tropical_ascendant_sign
+        asc_lon = self.local_sky.sidereal_ascendant if is_sid else self.local_sky.tropical_ascendant
+        asc_deg = round(AstroMath.get_degree_in_house(asc_lon, 1, self.local_sky.houses, is_sid), 1)
+
+        current_dasha, next_antardasha = self.get_current_dasha()
+
+        karaka_map = {}
+        for p, kdata in self.jaimini_karakas.items():
+            full_role = kdata.get("role", "")
+            base_role = full_role.split(" ")[0] if full_role else ""
+            karaka_map[p] = self.KARAKA_SHORT_CODES.get(base_role, base_role)
+
+        compact_planets = {}
+        for p_name, p_obj in self.chart.items():
+            sign = p_obj.sidereal_sign if is_sid else p_obj.zodiac_sign
+            house = p_obj.vedic_house if is_sid else p_obj.tropical_house
+            lon = p_obj.sidereal_longitude if is_sid else p_obj.tropical_longitude
+            deg = round(AstroMath.get_degree_in_house(lon, house, self.local_sky.houses, is_sid), 1)
+
+            synth = self.planetary_synthesis.get(p_name, {})
+            bala_lvl = synth.get("shadbala", {}).get("level", "")
+            bala_total = p_obj.shadbala.get("shadbala_total") if p_obj.shadbala else None
+
+            avasthas = getattr(p_obj, "avasthas", {})
+            if not avasthas:
+                avasthas = synth.get("avasthas", {})
+            compact_avasthas = {}
+            if avasthas:
+                for k in ["baladi", "jagradadi", "diptadi", "lajjitadi"]:
+                    if k in avasthas and "state" in avasthas[k]:
+                        compact_avasthas[k] = avasthas[k]["state"]
+
+            compact_planets[p_name] = {
+                "sign": sign,
+                "house": house,
+                "deg": deg,
+                "nakshatra": p_obj.nakshatra,
+                "dignity": p_obj.dignity,
+                "power": bala_lvl if bala_lvl else "N/A",
+                "bala": round(bala_total, 1) if bala_total is not None else None,
+                "d9": p_obj.vargas.get("D9", "-"),
+                "karaka": karaka_map.get(p_name, None),
+                "avasthas": compact_avasthas or None
+            }
+
+        compact_yogas = []
+        for y_name, y_data in self.yogas.items():
+            if y_data.get("active"):
+                details_raw = y_data.get("details", "")
+                planets_matched = details_raw.replace("Matching planets:", "").strip().rstrip(".")
+                compact_yogas.append({
+                    "name": y_name,
+                    "planets": planets_matched or "Chart",
+                    "results": y_data.get("results", "")
+                })
+
+        seen_aspects = set()
+        compact_aspects = []
+        for p1, targets in self.planetary_aspects.get("tajika", {}).items():
+            for t in targets:
+                p2 = t.get("target")
+                pair = tuple(sorted([p1, p2]))
+                if pair not in seen_aspects:
+                    seen_aspects.add(pair)
+                    asp_name = t.get("aspect", "").lower()
+                    orb = round(t.get("orb", 0.0), 1)
+                    compact_aspects.append(f"{pair[0]} {asp_name} {pair[1]} (orb {orb}°)")
+
+        compact_transits = {}
+        for p, d in self.transits.items():
+            compact_transits[p] = {
+                "sign": d.get("transit_sign"),
+                "house_from_moon": d.get("house_from_moon"),
+                "is_auspicious": d.get("is_auspicious")
+            }
+
+        tithi_p = self.panchanga.get("tithi", {})
+        return {
+            "subject": {
+                "name": name,
+                "birth": f"{birth.get('date', '')} {birth.get('time', '')}".strip(),
+                "timezone": birth.get("timezone", ""),
+                "coordinates": [birth.get("latitude"), birth.get("longitude")]
+            },
+            "ascendant": {
+                "sign": asc_sign,
+                "degree_in_house": asc_deg
+            },
+            "current_dasha": current_dasha,
+            "next_antardasha": next_antardasha,
+            "planets": compact_planets,
+            "active_yogas": compact_yogas,
+            "key_aspects": compact_aspects,
+            "transits": compact_transits,
+            "panchanga": {
+                "tithi": f"{tithi_p.get('paksha', '')} {tithi_p.get('name', '')}".strip(),
+                "nakshatra": self.panchanga.get("nakshatra", {}).get("name", ""),
+                "vara": self.panchanga.get("vara", {}).get("name", ""),
+                "yoga": self.panchanga.get("yoga", {}).get("name", "")
+            },
+            "sav_bindus": self.ashtakavarga.get("sav", [])
+        }
+
+    def export_markdown(self, output_path: str | Path) -> str:
+        content = self.generate_markdown()
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(content, encoding="utf-8")
+        return content
+
+    def export_lean_json(self, output_path: str | Path) -> dict:
+        content = self.generate_lean_json()
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(content, indent=2, ensure_ascii=False), encoding="utf-8")
+        return content
+
 
 
