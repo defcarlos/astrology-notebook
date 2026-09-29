@@ -1,11 +1,11 @@
 import unittest
-import os
 import sys
+from pathlib import Path
 import swisseph as swe
 
 # Ensure the root directory is in the import path
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, ROOT_DIR)
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT_DIR))
 
 from astrology_engine import (
     AstroTime,
@@ -19,11 +19,13 @@ from astrology_engine import (
     PanchangaEngine,
     PlanetarySynthesisEngine,
     AspectEngine,
-    AvasthaEngine
+    AvasthaEngine,
+    LLMContextExporter,
+    VimshottariDashaEngine
 )
 
 # Configure Swiss Ephemeris path
-swe.set_ephe_path(os.path.join(ROOT_DIR, 'ephe'))
+swe.set_ephe_path(str(ROOT_DIR / 'ephe'))
 
 def calculate_chart_profile(year, month, day, time_str, tz, lat, lon, mode="Tropical-Vedic", house_system="W", ayanamsa=36):
     """
@@ -52,7 +54,7 @@ def calculate_chart_profile(year, month, day, time_str, tz, lat, lon, mode="Trop
     ashtakavarga = AshtakavargaEngine.calculate_ashtakavarga(chart, local_sky, mode)
     
     # 6. Scan Yogas
-    yogas_rules_path = os.path.join(ROOT_DIR, 'yogas')
+    yogas_rules_path = ROOT_DIR / 'yogas'
     subject_profile = {"name": "Test Subject", "gender": "Male"}
     yogas = YogaEngine.scan_yogas(chart, local_sky, mode, yogas_rules_path, subject_profile)
     
@@ -373,6 +375,75 @@ class TestAstrologyEngine(unittest.TestCase):
             self.assertIn("diptadi", avasthas)
             self.assertIn("shayanadi", avasthas)
             self.assertIn("lajjitadi", avasthas)
+
+    def test_llm_context_exporter(self):
+        """
+        Verify LLMContextExporter generates valid, compact Markdown and lean JSON.
+        """
+        # Steve Jobs chart
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
+            year=1955, month=2, day=24, time_str="19:15", tz="America/Los_Angeles",
+            lat=37.7749, lon=-122.4194, mode="Tropical-Vedic"
+        )
+        epoch = AstroTime(1955, 2, 24, "19:15", "America/Los_Angeles")
+        dasha_periods = VimshottariDashaEngine(epoch, chart["Moon"].nakshatra, chart["Moon"].sidereal_longitude).dasha_periods
+        subject_profile = {
+            "name": "Steve Jobs",
+            "gender": "Male",
+            "birth_data": {
+                "date": "1955-02-24",
+                "time": "19:15",
+                "timezone": "America/Los_Angeles",
+                "latitude": 37.7749,
+                "longitude": -122.4194
+            }
+        }
+        transits = {
+            "Jupiter": {"transit_sign": "Taurus", "house_from_moon": 2, "is_auspicious": True},
+            "Saturn": {"transit_sign": "Aquarius", "house_from_moon": 11, "is_auspicious": True}
+        }
+
+        exporter = LLMContextExporter(
+            subject_profile=subject_profile,
+            chart=chart,
+            local_sky=local_sky,
+            report_mode="Tropical-Vedic",
+            yogas=yogas,
+            dasha_periods=dasha_periods,
+            transits=transits,
+            panchanga=panchanga,
+            ashtakavarga=ashtakavarga,
+            jaimini_karakas=jaimini,
+            planetary_synthesis=synthesis,
+            planetary_aspects=aspects
+        )
+
+        # 1. Verify Markdown generation
+        md = exporter.generate_markdown()
+        self.assertIn("# Natal Chart: Steve Jobs", md)
+        self.assertIn("Ascendant (Lagna):", md)
+        self.assertIn("Planetary Positions & Strength", md)
+        self.assertIn("| Planet | Sign | House |", md)
+        self.assertIn("Active Classical Yogas & Traditional Results", md)
+        self.assertIn("Amala Yoga", md)
+        # Verify classical results are retained
+        self.assertIn("spotless", md.lower())
+        self.assertIn("Key Aspects & Transits", md)
+        self.assertIn("SAV Bindus", md)
+
+        # 2. Verify lean JSON generation
+        lean = exporter.generate_lean_json()
+        self.assertEqual(lean["subject"]["name"], "Steve Jobs")
+        self.assertIn("Sun", lean["planets"])
+        self.assertEqual(lean["planets"]["Sun"]["sign"], "Pisces")
+        self.assertTrue(len(lean["active_yogas"]) > 0)
+        # Verify that yoga results are present in JSON
+        first_yoga = lean["active_yogas"][0]
+        self.assertIn("name", first_yoga)
+        self.assertIn("results", first_yoga)
+        self.assertTrue(len(first_yoga["results"]) > 0)
+        self.assertIn("current_dasha", lean)
+        self.assertIn("sav_bindus", lean)
 
 if __name__ == '__main__':
     unittest.main()
