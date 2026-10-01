@@ -133,6 +133,10 @@ class AstroMath:
         return cls.NAKSHATRAS[int(((longitude % 360.0) * 27.0) / 360.0) % 27]
 
     @classmethod
+    def get_nakshatra_pada(cls, longitude):
+        return int(((longitude % 360.0) * 108.0) / 360.0) % 4 + 1
+
+    @classmethod
     def get_house_placement(cls, longitude, houses_dict, is_sidereal=False):
         prefix = "sidereal_start" if is_sidereal else "tropical_start"
         for h in range(1, 13):
@@ -2542,6 +2546,16 @@ class LLMContextExporter:
         "Darakaraka": "DK"
     }
 
+    KARAKA_FULL_DESCRIPTIONS = {
+        "Atmakaraka": "Atmakaraka (Self/Soul)",
+        "Amatyakaraka": "Amatyakaraka (Career/Profession)",
+        "Bhratrukaraka": "Bhratrukaraka (Siblings/Guru)",
+        "Matrukaraka": "Matrukaraka (Mother)",
+        "Putrakaraka": "Putrakaraka (Children/Intellect)",
+        "Jnatikaraka": "Jnatikaraka (Relatives/Obstacles)",
+        "Darakaraka": "Darakaraka (Spouse/Partners)"
+    }
+
     def __init__(
         self,
         subject_profile: dict,
@@ -2617,6 +2631,9 @@ class LLMContextExporter:
         asc_sign = self.local_sky.sidereal_ascendant_sign if is_sid else self.local_sky.tropical_ascendant_sign
         asc_lon = self.local_sky.sidereal_ascendant if is_sid else self.local_sky.tropical_ascendant
         asc_deg = round(AstroMath.get_degree_in_house(asc_lon, 1, self.local_sky.houses, is_sid), 1)
+        asc_sid_lon = self.local_sky.sidereal_ascendant
+        asc_nak = AstroMath.get_nakshatra(asc_sid_lon)
+        asc_pada = AstroMath.get_nakshatra_pada(asc_sid_lon)
 
         tithi_p = self.panchanga.get("tithi", {})
         tithi_str = f"{tithi_p.get('paksha', '')} {tithi_p.get('name', '')}".strip()
@@ -2626,32 +2643,46 @@ class LLMContextExporter:
 
         md_lines = [
             f"# Natal Chart: {name} ({date_str} {time_str}, {tz_str})",
-            f"**Ascendant (Lagna):** {asc_sign} {asc_deg}° | **Panchanga:** {panchanga_summary}"
+            f"**Ascendant (Lagna):** {asc_sign} {asc_deg}° ({asc_nak} P{asc_pada}) | **Panchanga:** {panchanga_summary}"
         ]
 
         current_dasha, next_antardasha = self.get_current_dasha()
         if current_dasha:
-            m_lord = current_dasha.get("mahadasha", {}).get("lord", "")
-            a_lord = current_dasha.get("antardasha", {}).get("lord", "")
+            m_obj = current_dasha.get("mahadasha", {})
+            m_lord = m_obj.get("lord", "")
+            m_start = m_obj.get("start", "")[:4]
+            m_end = m_obj.get("end", "")[:4]
+
+            a_obj = current_dasha.get("antardasha", {})
+            a_lord = a_obj.get("lord", "")
+            a_end = a_obj.get("end", "")[:7]
+
             p_obj = current_dasha.get("pratyantardasha", {})
             p_lord = p_obj.get("lord", "")
             p_end = p_obj.get("end", "")
-            dasha_line = f"**Current Dasha:** {m_lord}-{a_lord}-{p_lord} (ends {p_end})"
+
+            dasha_line = f"**Current Dasha:** {m_lord} MD ({m_start}–{m_end}) > {a_lord} AD (to {a_end}) > {p_lord} PD (ends {p_end})"
             if next_antardasha:
-                dasha_line += f" | **Next:** {next_antardasha}"
+                dasha_line += f" | **Next AD:** {next_antardasha}"
             md_lines.append(dasha_line)
 
-        # Build karaka lookup
+        # Build spelled-out karaka lookup
         karaka_map = {}
         for p, kdata in self.jaimini_karakas.items():
             full_role = kdata.get("role", "")
             base_role = full_role.split(" ")[0] if full_role else ""
-            karaka_map[p] = self.KARAKA_SHORT_CODES.get(base_role, base_role)
+            karaka_map[p] = self.KARAKA_FULL_DESCRIPTIONS.get(base_role, full_role)
+
+        # Reference Sun for combustion
+        sun_lon = None
+        if "Sun" in self.chart:
+            sun_obj = self.chart["Sun"]
+            sun_lon = sun_obj.sidereal_longitude if is_sid else sun_obj.tropical_longitude
 
         # Planetary table
         md_lines.extend([
             "\n### Planetary Positions & Strength",
-            "| Planet | Sign | House | Deg | Nakshatra | Dignity | Power (Bala) | D9 Navamsha | Karaka | Avasthas |",
+            "| Planet | Sign | House | Deg | Nakshatra | Dignity | Power (Bala) | D9 / D10 | Karaka | Takeaway |",
             "|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|"
         ])
 
@@ -2667,41 +2698,92 @@ class LLMContextExporter:
             power_str = f"{bala_lvl} ({round(bala_total, 1)})" if bala_total is not None else "N/A"
 
             d9_val = p_obj.vargas.get("D9", "-")
+            d10_val = p_obj.vargas.get("D10", "-")
+            varga_str = f"{d9_val} / {d10_val}" if d10_val != "-" else d9_val
+
             karaka_val = karaka_map.get(p_name, "-")
 
-            avasthas = getattr(p_obj, "avasthas", {})
-            if not avasthas:
-                avasthas = synth.get("avasthas", {})
-            av_list = []
-            if avasthas:
-                if "baladi" in avasthas and "state" in avasthas["baladi"]:
-                    av_list.append(avasthas["baladi"]["state"])
-                if "jagradadi" in avasthas and "state" in avasthas["jagradadi"]:
-                    av_list.append(avasthas["jagradadi"]["state"])
-            av_str = ", ".join(av_list) if av_list else "-"
+            # Retrograde & Combustion markers
+            is_retro = (getattr(p_obj, "sidereal_speed", 0.0) < 0) if p_name not in ["Sun", "Moon", "Rahu", "Ketu"] else False
+            is_combust = synth.get("avasthas", {}).get("diptadi", {}).get("is_combust", False)
+            if not is_combust and p_name != "Sun" and sun_lon is not None:
+                diff = abs(lon - sun_lon) % 360
+                diff = min(diff, 360.0 - diff)
+                if diff <= 8.0:
+                    is_combust = True
+
+            dignity_parts = [p_obj.dignity]
+            if is_retro:
+                dignity_parts.append("(R)")
+            if is_combust:
+                dignity_parts.append("[Combust]")
+            dignity_str = " ".join(dignity_parts)
+
+            # Ruled houses and Yogakaraka status
+            ruled = YogaEngine.get_ruled_houses(p_name, asc_sign)
+            is_yk = any(h in [4, 7, 10] for h in ruled) and any(h in [5, 9] for h in ruled)
+            if ruled:
+                rule_str = f"L{', L'.join(map(str, ruled))}"
+                yk_str = " - YK" if is_yk else ""
+                house_str = f"{house} ({rule_str}{yk_str})"
+            else:
+                house_str = f"{house}"
+
+            # Nakshatra with Pada
+            nak_pada = AstroMath.get_nakshatra_pada(p_obj.sidereal_longitude)
+            nak_str = f"{p_obj.nakshatra} (P{nak_pada})"
+
+            # Synthesis Takeaway
+            takeaway = synth.get("takeaway", "")
+            if not takeaway:
+                avasthas = getattr(p_obj, "avasthas", {}) or synth.get("avasthas", {})
+                av_list = []
+                if avasthas:
+                    if "baladi" in avasthas and "state" in avasthas["baladi"]:
+                        av_list.append(avasthas["baladi"]["state"])
+                    if "jagradadi" in avasthas and "state" in avasthas["jagradadi"]:
+                        av_list.append(avasthas["jagradadi"]["state"])
+                takeaway = ", ".join(av_list) if av_list else "-"
+
+            p_display = f"{p_name} (R)" if is_retro else p_name
 
             md_lines.append(
-                f"| {p_name} | {sign} | {house} | {deg}° | {p_obj.nakshatra} | {p_obj.dignity} | {power_str} | {d9_val} | {karaka_val} | {av_str} |"
+                f"| {p_display} | {sign} | {house_str} | {deg}° | {nak_str} | {dignity_str} | {power_str} | {varga_str} | {karaka_val} | {takeaway} |"
             )
 
-        # Active Yogas with Traditional Interpretive Results
+        # Active Yogas with Traditional Interpretive Results (Deduplicated)
         md_lines.extend(["\n### Active Classical Yogas & Traditional Results"])
         active_found = False
+        seen_results = set()
+        active_keys = set(k for k, v in self.yogas.items() if v.get("active"))
+
         for y_name, y_data in self.yogas.items():
-            if y_data.get("active"):
-                active_found = True
-                details_raw = y_data.get("details", "")
-                if "Matching planets:" in details_raw:
-                    planets_matched = details_raw.replace("Matching planets:", "").strip().rstrip(".")
-                else:
-                    planets_matched = details_raw.strip().rstrip(".") or "Chart"
-                results_text = y_data.get("results", "Favorable classical combination.")
-                md_lines.append(f"- **{y_name}** ({planets_matched}): {results_text}")
+            if not y_data.get("active"):
+                continue
+
+            # Suppress generic prefix duplicate if specific counterpart is present
+            if y_name.startswith("Generic "):
+                base_name = y_name[8:]
+                if base_name in active_keys:
+                    continue
+
+            results_text = y_data.get("results", "Favorable classical combination.")
+            if results_text in seen_results:
+                continue
+            seen_results.add(results_text)
+
+            active_found = True
+            details_raw = y_data.get("details", "")
+            if "Matching planets:" in details_raw:
+                planets_matched = details_raw.replace("Matching planets:", "").strip().rstrip(".")
+            else:
+                planets_matched = details_raw.strip().rstrip(".") or "Chart"
+            md_lines.append(f"- **{y_name}** ({planets_matched}): {results_text}")
 
         if not active_found:
             md_lines.append("- No primary classical yogas active.")
 
-        # Key Aspects & Transits
+        # Key Aspects, Drishti & Transits
         seen_aspects = set()
         aspect_list = []
         for p1, targets in self.planetary_aspects.get("tajika", {}).items():
@@ -2714,6 +2796,16 @@ class LLMContextExporter:
                     orb = round(t.get("orb", 0.0), 1)
                     aspect_list.append(f"{pair[0]} {asp_name} {pair[1]} (orb {orb}°)")
 
+        parashari_items = []
+        for p1, targets in self.planetary_aspects.get("parashari", {}).items():
+            if not targets:
+                continue
+            t_names = [t.get("target") for t in targets if t.get("target")]
+            raw_asp = targets[0].get("aspect", "").replace(" (Special)", "").replace(" (Universal)", "").strip()
+            asp_name = raw_asp.replace("3th", "3rd").replace("2th", "2nd").replace("1th", "1st")
+            if t_names:
+                parashari_items.append(f"{p1} aspects {', '.join(t_names)} ({asp_name})")
+
         transits_summary_items = []
         for p, d in self.transits.items():
             h = d.get("house_from_moon", "")
@@ -2722,12 +2814,20 @@ class LLMContextExporter:
             transits_summary_items.append(f"{p}: {sign_t} (H{h}{star})")
 
         sav_list = self.ashtakavarga.get("sav", [])
+        sav_summary = f"{sav_list}"
+        if sav_list and len(sav_list) == 12:
+            max_bindus = max(sav_list)
+            min_bindus = min(sav_list)
+            max_houses = [f"H{i+1}" for i, v in enumerate(sav_list) if v == max_bindus]
+            min_houses = [f"H{i+1}" for i, v in enumerate(sav_list) if v == min_bindus]
+            sav_summary += f" (Peak: {', '.join(max_houses)} @ {max_bindus} | Low: {', '.join(min_houses)} @ {min_bindus})"
 
         md_lines.extend([
             "\n### Key Aspects & Transits",
-            f"- **Aspects:** {', '.join(aspect_list[:8]) if aspect_list else 'None prominent'}",
+            f"- **Parashari Drishti:** {', '.join(parashari_items) if parashari_items else 'None prominent'}",
+            f"- **Tajika Aspects:** {', '.join(aspect_list[:8]) if aspect_list else 'None prominent'}",
             f"- **Transits from Moon (*=Auspicious):** {' | '.join(transits_summary_items[:6]) if transits_summary_items else 'None'}",
-            f"- **SAV Bindus (Houses 1-12):** {sav_list}"
+            f"- **SAV Bindus (Houses 1-12):** {sav_summary}"
         ])
 
         return "\n".join(md_lines)
@@ -2739,6 +2839,9 @@ class LLMContextExporter:
         asc_sign = self.local_sky.sidereal_ascendant_sign if is_sid else self.local_sky.tropical_ascendant_sign
         asc_lon = self.local_sky.sidereal_ascendant if is_sid else self.local_sky.tropical_ascendant
         asc_deg = round(AstroMath.get_degree_in_house(asc_lon, 1, self.local_sky.houses, is_sid), 1)
+        asc_sid_lon = self.local_sky.sidereal_ascendant
+        asc_nak = AstroMath.get_nakshatra(asc_sid_lon)
+        asc_pada = AstroMath.get_nakshatra_pada(asc_sid_lon)
 
         current_dasha, next_antardasha = self.get_current_dasha()
 
@@ -2746,7 +2849,12 @@ class LLMContextExporter:
         for p, kdata in self.jaimini_karakas.items():
             full_role = kdata.get("role", "")
             base_role = full_role.split(" ")[0] if full_role else ""
-            karaka_map[p] = self.KARAKA_SHORT_CODES.get(base_role, base_role)
+            karaka_map[p] = self.KARAKA_FULL_DESCRIPTIONS.get(base_role, full_role)
+
+        sun_lon = None
+        if "Sun" in self.chart:
+            sun_obj = self.chart["Sun"]
+            sun_lon = sun_obj.sidereal_longitude if is_sid else sun_obj.tropical_longitude
 
         compact_planets = {}
         for p_name, p_obj in self.chart.items():
@@ -2768,29 +2876,62 @@ class LLMContextExporter:
                     if k in avasthas and "state" in avasthas[k]:
                         compact_avasthas[k] = avasthas[k]["state"]
 
+            is_retro = (getattr(p_obj, "sidereal_speed", 0.0) < 0) if p_name not in ["Sun", "Moon", "Rahu", "Ketu"] else False
+            is_combust = synth.get("avasthas", {}).get("diptadi", {}).get("is_combust", False)
+            if not is_combust and p_name != "Sun" and sun_lon is not None:
+                diff = abs(lon - sun_lon) % 360
+                diff = min(diff, 360.0 - diff)
+                if diff <= 8.0:
+                    is_combust = True
+
+            ruled = YogaEngine.get_ruled_houses(p_name, asc_sign)
+            is_yk = any(h in [4, 7, 10] for h in ruled) and any(h in [5, 9] for h in ruled)
+            nak_pada = AstroMath.get_nakshatra_pada(p_obj.sidereal_longitude)
+
             compact_planets[p_name] = {
                 "sign": sign,
                 "house": house,
                 "deg": deg,
                 "nakshatra": p_obj.nakshatra,
+                "nakshatra_pada": nak_pada,
                 "dignity": p_obj.dignity,
+                "is_retrograde": is_retro,
+                "is_combust": is_combust,
+                "ruled_houses": ruled,
+                "is_yogakaraka": is_yk,
                 "power": bala_lvl if bala_lvl else "N/A",
                 "bala": round(bala_total, 1) if bala_total is not None else None,
                 "d9": p_obj.vargas.get("D9", "-"),
+                "d10": p_obj.vargas.get("D10", "-"),
                 "karaka": karaka_map.get(p_name, None),
+                "takeaway": synth.get("takeaway", None),
                 "avasthas": compact_avasthas or None
             }
 
         compact_yogas = []
+        seen_results = set()
+        active_keys = set(k for k, v in self.yogas.items() if v.get("active"))
         for y_name, y_data in self.yogas.items():
-            if y_data.get("active"):
-                details_raw = y_data.get("details", "")
-                planets_matched = details_raw.replace("Matching planets:", "").strip().rstrip(".")
-                compact_yogas.append({
-                    "name": y_name,
-                    "planets": planets_matched or "Chart",
-                    "results": y_data.get("results", "")
-                })
+            if not y_data.get("active"):
+                continue
+
+            if y_name.startswith("Generic "):
+                base_name = y_name[8:]
+                if base_name in active_keys:
+                    continue
+
+            results_text = y_data.get("results", "")
+            if results_text in seen_results:
+                continue
+            seen_results.add(results_text)
+
+            details_raw = y_data.get("details", "")
+            planets_matched = details_raw.replace("Matching planets:", "").strip().rstrip(".")
+            compact_yogas.append({
+                "name": y_name,
+                "planets": planets_matched or "Chart",
+                "results": results_text
+            })
 
         seen_aspects = set()
         compact_aspects = []
@@ -2803,6 +2944,16 @@ class LLMContextExporter:
                     asp_name = t.get("aspect", "").lower()
                     orb = round(t.get("orb", 0.0), 1)
                     compact_aspects.append(f"{pair[0]} {asp_name} {pair[1]} (orb {orb}°)")
+
+        parashari_items = []
+        for p1, targets in self.planetary_aspects.get("parashari", {}).items():
+            if not targets:
+                continue
+            t_names = [t.get("target") for t in targets if t.get("target")]
+            raw_asp = targets[0].get("aspect", "").replace(" (Special)", "").replace(" (Universal)", "").strip()
+            asp_name = raw_asp.replace("3th", "3rd").replace("2th", "2nd").replace("1th", "1st")
+            if t_names:
+                parashari_items.append(f"{p1} aspects {', '.join(t_names)} ({asp_name})")
 
         compact_transits = {}
         for p, d in self.transits.items():
@@ -2822,13 +2973,16 @@ class LLMContextExporter:
             },
             "ascendant": {
                 "sign": asc_sign,
-                "degree_in_house": asc_deg
+                "degree_in_house": asc_deg,
+                "nakshatra": asc_nak,
+                "nakshatra_pada": asc_pada
             },
             "current_dasha": current_dasha,
             "next_antardasha": next_antardasha,
             "planets": compact_planets,
             "active_yogas": compact_yogas,
             "key_aspects": compact_aspects,
+            "parashari_aspects": parashari_items,
             "transits": compact_transits,
             "panchanga": {
                 "tithi": f"{tithi_p.get('paksha', '')} {tithi_p.get('name', '')}".strip(),
