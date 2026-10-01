@@ -480,11 +480,19 @@
                                 {% endif %}
                                 {% for p in chart.planets %}
                                 <tr>
-                                    <th scope="row">{{ p.name }}</th>
+                                    <th scope="row">
+                                        <strong>{{ p.name }}</strong>
+                                        {% if p.is_retrograde %}<span style="display: inline-block; margin-left: 0.35rem; padding: 0.1rem 0.4rem; font-size: 0.75rem; font-weight: 700; border-radius: 4px; background: rgba(243, 198, 63, 0.15); color: var(--gold); border: 1px solid var(--gold);" title="Retrograde">R</span>{% endif %}
+                                        {% if p.is_combust %}<span style="display: inline-block; margin-left: 0.35rem; padding: 0.1rem 0.4rem; font-size: 0.75rem; font-weight: 700; border-radius: 4px; background: rgba(231, 76, 60, 0.15); color: var(--red); border: 1px solid var(--red);" title="Combust">C</span>{% endif %}
+                                    </th>
                                     <td>{{ p.tropical_sign | default('-') }}</td>
                                     <td>{{ p.tropical_house | default('-') }}</td>
                                     <td>{{ p.tropical_degree_in_house | default('-') }}°</td>
-                                    <td>{{ p.dignity | default('-') }}</td>
+                                    <td>
+                                        {{ p.dignity | default('-') }}
+                                        {% if p.is_retrograde %}<span style="color: var(--gold); font-size: 0.85rem; font-weight: 600;">(R)</span>{% endif %}
+                                        {% if p.is_combust %}<span style="color: var(--red); font-size: 0.85rem; font-weight: 600;">(C)</span>{% endif %}
+                                    </td>
                                     <td>{{ p.shadbala.shadbala_total | default('-') }}</td>
                                     <td>{{ p.sidereal_nakshatra | default('-') }}</td>
                                 </tr>
@@ -514,7 +522,12 @@
                                     {% set jaimini = chart.jaimini_karakas.get(name) %}
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                                         <div style="display: flex; flex-direction: column;">
-                                            <h3 style="font-family: 'Cinzel', serif; font-size: 1.3rem; color: var(--gold); margin: 0;">{{ name }}</h3>
+                                            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                                <h3 style="font-family: 'Cinzel', serif; font-size: 1.3rem; color: var(--gold); margin: 0;">{{ name }}</h3>
+                                                {% set p_info = (planets_by_name.get(name) if planets_by_name else none) or (chart.planets_by_name.get(name) if chart.planets_by_name else none) %}
+                                                {% if p_info and p_info.is_retrograde %}<span style="font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(243, 198, 63, 0.15); color: var(--gold); border: 1px solid var(--gold);" title="Retrograde">Retrograde (R)</span>{% endif %}
+                                                {% if p_info and p_info.is_combust %}<span style="font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(231, 76, 60, 0.15); color: var(--red); border: 1px solid var(--red);" title="Combust">Combust (C)</span>{% endif %}
+                                            </div>
                                             {% if jaimini %}
                                                 <span style="font-size: 0.8rem; color: var(--purple); font-weight: 500; margin-top: 0.15rem;">{{ jaimini.role.split(' ')[0] }}</span>
                                             {% endif %}
@@ -576,7 +589,11 @@
                             <tbody>
                                 {% for p in chart.planets %}
                                 <tr>
-                                    <th scope="row"><strong>{{ p.name }}</strong></th>
+                                    <th scope="row">
+                                        <strong>{{ p.name }}</strong>
+                                        {% if p.is_retrograde %}<span style="color: var(--gold); font-size: 0.85rem; font-weight: 600;">(R)</span>{% endif %}
+                                        {% if p.is_combust %}<span style="color: var(--red); font-size: 0.85rem; font-weight: 600;">(C)</span>{% endif %}
+                                    </th>
                                     <td>
                                         {% if p.avasthas and p.avasthas.baladi %}
                                             <strong>{{ p.avasthas.baladi.state }}</strong>
@@ -642,13 +659,8 @@
                             </thead>
                             <tbody>
                                 {% for name, k in chart.jaimini_karakas.items() %}
-                                    {# Find the planet object in chart.planets to get its sign and house #}
-                                    {% set p_obj = none %}
-                                    {% for p in chart.planets %}
-                                        {% if p.name == name %}
-                                            {% set p_obj = p %}
-                                        {% endif %}
-                                    {% endfor %}
+                                    {# Retrieve planet object #}
+                                    {% set p_obj = (planets_by_name.get(name) if planets_by_name else none) or (chart.planets_by_name.get(name) if chart.planets_by_name else none) %}
                                     
                                     {% set is_sid = false if mode in ["Tropical-Vedic", "Tropical Focus"] else true %}
                                     {% set p_sign = p_obj.tropical_sign if not is_sid else p_obj.sidereal_sign %}
@@ -674,7 +686,7 @@
                                     
                                     <tr>
                                         <th scope="row"><strong>{{ k.role }}</strong></th>
-                                        <td>{{ name }}</td>
+                                        <td><strong>{{ name }}</strong>{% if p_obj and p_obj.is_retrograde %} <span style="color: var(--gold); font-size: 0.85rem; font-weight: 600;">(R)</span>{% endif %}{% if p_obj and p_obj.is_combust %} <span style="color: var(--red); font-size: 0.85rem; font-weight: 600;">(C)</span>{% endif %}</td>
                                         <td>{{ k.degree }}°</td>
                                         <td>{{ p_sign | default('-') }}</td>
                                         <td>House {{ p_house | default('-') }}</td>
@@ -1176,7 +1188,11 @@
                                         {% set status = "🟢 Meets Requirement" if total >= req else "🔴 Deficient" %}
                                         
                                         <tr>
-                                            <th scope="row">{{ p.name }}</th>
+                                            <th scope="row">
+                                                <strong>{{ p.name }}</strong>
+                                                {% if p.is_retrograde %}<span style="color: var(--gold); font-size: 0.85rem; font-weight: 600;">(R)</span>{% endif %}
+                                                {% if p.is_combust %}<span style="color: var(--red); font-size: 0.85rem; font-weight: 600;">(C)</span>{% endif %}
+                                            </th>
                                             <td>
                                                 <strong>{{ p.shadbala.sthana_bala.sthana_bala_total | default('-') }}</strong>
                                                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">

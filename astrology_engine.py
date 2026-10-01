@@ -1408,7 +1408,56 @@ class HTMLReporter:
             if 'tropical_degree_in_house' not in asc and 'tropical_longitude' in asc:
                 asc['tropical_degree_in_house'] = round(asc['tropical_longitude'] % 30, 4)
         self.mode = settings.get('report_mode', 'Everything')
-        
+        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+
+        sun_lon = None
+        for p in self.chart.get('planets', []):
+            if p.get('name') == 'Sun':
+                sun_lon = p.get('sidereal_longitude') if is_sid else p.get('tropical_longitude')
+                break
+
+        has_speed_info = any('is_retrograde' in p or 'speed' in p or 'sidereal_speed' in p for p in self.chart.get('planets', []))
+        speeds = {}
+        if not has_speed_info:
+            b = self.subject.get('birth_data', {})
+            if b.get('date') and b.get('time') and b.get('timezone'):
+                try:
+                    swe.set_ephe_path(str(Path(__file__).resolve().parent / 'ephe'))
+                    y, m, d = [int(x) for x in b['date'].split('-')]
+                    ayanamsa = settings.get('ayanamsa', 36)
+                    epoch = AstroTime(y, m, d, b['time'], b['timezone'], sid_mode=ayanamsa)
+                    temp_chart = ChartFactory.create_chart(epoch, mode=self.mode)
+                    for p_name, p_obj in temp_chart.items():
+                        speeds[p_name] = getattr(p_obj, 'sidereal_speed', 0.0) if is_sid else getattr(p_obj, 'tropical_speed', 0.0)
+                except Exception:
+                    pass
+
+        for p in self.chart.get('planets', []):
+            p_name = p.get('name', '')
+            if 'is_retrograde' not in p:
+                if p_name in ["Sun", "Moon", "Rahu", "Ketu"]:
+                    p['is_retrograde'] = False
+                elif p_name in speeds:
+                    p['is_retrograde'] = speeds[p_name] < 0
+                elif 'speed' in p:
+                    p['is_retrograde'] = p['speed'] < 0
+                elif 'sidereal_speed' in p:
+                    p['is_retrograde'] = p['sidereal_speed'] < 0
+                else:
+                    p['is_retrograde'] = False
+
+            if 'is_combust' not in p:
+                is_c = p.get('avasthas', {}).get('diptadi', {}).get('is_combust', False)
+                if not is_c and p_name != 'Sun' and sun_lon is not None:
+                    p_lon = p.get('sidereal_longitude') if is_sid else p.get('tropical_longitude')
+                    if p_lon is not None:
+                        diff = abs(p_lon - sun_lon) % 360
+                        diff = min(diff, 360.0 - diff)
+                        if diff <= 8.0:
+                            is_c = True
+                p['is_combust'] = is_c
+
+        self.chart['planets_by_name'] = {p.get('name'): p for p in self.chart.get('planets', [])}
         self.template = Path(template_path).read_text(encoding="utf-8")
 
     def generate_south_chart_svg(self):
@@ -1438,6 +1487,7 @@ class HTMLReporter:
         svg += '  <text x="200" y="220" fill="#a5a7cc" font-family="Outfit" font-size="12" text-anchor="middle">South Indian Chart</text>\n'
         
         p_abbr = {"Sun": "SU", "Moon": "MO", "Mars": "MA", "Mercury": "ME", "Jupiter": "JU", "Venus": "VE", "Saturn": "SA", "Rahu": "RA", "Ketu": "KE"}
+        p_info_map = {p.get('name'): p for p in self.chart.get('planets', [])}
         
         for idx, (r, c) in enumerate(cells):
             sign_name = sign_names[idx]
@@ -1449,7 +1499,15 @@ class HTMLReporter:
             content = []
             if sign_name == lagna_sign:
                 content.append("ASC")
-            content.extend([p_abbr.get(p_name, p_name.upper()) for p_name in sign_to_planets.get(sign_name, [])])
+            for p_name in sign_to_planets.get(sign_name, []):
+                abbr = p_abbr.get(p_name, p_name.upper())
+                p_data = p_info_map.get(p_name, {})
+                markers = ""
+                if p_data.get('is_retrograde'):
+                    markers += "(R)"
+                if p_data.get('is_combust'):
+                    markers += "(C)"
+                content.append(f"{abbr}{markers}")
             
             for i, item in enumerate(content):
                 cy = y + 45 + (i * 15)
@@ -1501,6 +1559,7 @@ class HTMLReporter:
         svg += '  <line x1="400" y1="200" x2="200" y2="0" stroke="#2e305c" stroke-width="2"/>\n'
         
         p_abbr = {"Sun": "SU", "Moon": "MO", "Mars": "MA", "Mercury": "ME", "Jupiter": "JU", "Venus": "VE", "Saturn": "SA", "Rahu": "RA", "Ketu": "KE"}
+        p_info_map = {p.get('name'): p for p in self.chart.get('planets', [])}
         sign_abbreviations = ["ARI", "TAU", "GEM", "CAN", "LEO", "VIR", "LIB", "SCO", "SAG", "CAP", "AQU", "PIS"]
         
         for h in range(1, 13):
@@ -1513,7 +1572,15 @@ class HTMLReporter:
             content = []
             if h == 1:
                 content.append("ASC")
-            content.extend([p_abbr.get(p_name, p_name.upper()) for p_name in house_to_planets.get(h, [])])
+            for p_name in house_to_planets.get(h, []):
+                abbr = p_abbr.get(p_name, p_name.upper())
+                p_data = p_info_map.get(p_name, {})
+                markers = ""
+                if p_data.get('is_retrograde'):
+                    markers += "(R)"
+                if p_data.get('is_combust'):
+                    markers += "(C)"
+                content.append(f"{abbr}{markers}")
             
             px, py = centers["planets"]
             planet_str = ", ".join(content)
@@ -1956,7 +2023,8 @@ class HTMLReporter:
             today=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             zodiac_signs=AstroMath.ZODIAC_SIGNS,
             classical_planets=["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"],
-            friendship_mapping=friendship_mapping
+            friendship_mapping=friendship_mapping,
+            planets_by_name=self.chart.get('planets_by_name', {})
         )
         
         out_p = Path(output_path)
@@ -2716,7 +2784,7 @@ class LLMContextExporter:
             if is_retro:
                 dignity_parts.append("(R)")
             if is_combust:
-                dignity_parts.append("[Combust]")
+                dignity_parts.append("(C)")
             dignity_str = " ".join(dignity_parts)
 
             # Ruled houses and Yogakaraka status
@@ -2745,7 +2813,12 @@ class LLMContextExporter:
                         av_list.append(avasthas["jagradadi"]["state"])
                 takeaway = ", ".join(av_list) if av_list else "-"
 
-            p_display = f"{p_name} (R)" if is_retro else p_name
+            markers = []
+            if is_retro:
+                markers.append("(R)")
+            if is_combust:
+                markers.append("(C)")
+            p_display = f"{p_name} {' '.join(markers)}".strip()
 
             md_lines.append(
                 f"| {p_display} | {sign} | {house_str} | {deg}° | {nak_str} | {dignity_str} | {power_str} | {varga_str} | {karaka_val} | {takeaway} |"

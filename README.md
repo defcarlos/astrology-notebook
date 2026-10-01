@@ -52,9 +52,9 @@ pip install pysweph pyyaml requests tzdata jinja2 python-dateutil geopy
    * `GENDER`: Gender input (`"Male"` or `"Female"`)
 3. Run all cells in the notebook.
 4. **View Outputs**:
-   * Stored structured full calculations: `knowledge_base/<name>/<name>_astrology_profile.json`
-   * Stored compact LLM payload: `knowledge_base/<name>/<name>_llm_payload.json`
-   * Stored interactive HTML report: `knowledge_base/<name>/<name>_report.html`
+   * Stored structured full calculations: `profiles/<name>/<name>_astrology_profile.json`
+   * Stored compact LLM payload: `profiles/<name>/<name>_llm_payload.json`
+   * Stored interactive HTML report: `profiles/<name>/<name>_report.html`
    * Bundled production archive: `C:\Users\carlo\Documents\astrology-notebook\<name>_astrology_profile_final.zip`
 
 ---
