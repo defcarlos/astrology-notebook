@@ -429,13 +429,20 @@ class TestAstrologyEngine(unittest.TestCase):
         # Verify classical results are retained
         self.assertIn("spotless", md.lower())
         self.assertIn("Key Aspects & Transits", md)
+        self.assertIn("Parashari Drishti", md)
         self.assertIn("SAV Bindus", md)
+        self.assertIn("D9 / D10", md)
+        self.assertIn("Atmakaraka", md)
 
         # 2. Verify lean JSON generation
         lean = exporter.generate_lean_json()
         self.assertEqual(lean["subject"]["name"], "Steve Jobs")
         self.assertIn("Sun", lean["planets"])
         self.assertEqual(lean["planets"]["Sun"]["sign"], "Pisces")
+        self.assertIn("nakshatra_pada", lean["planets"]["Sun"])
+        self.assertIn("ruled_houses", lean["planets"]["Sun"])
+        self.assertIn("Bhratrukaraka", lean["planets"]["Sun"]["karaka"])
+        self.assertIn("Atmakaraka", lean["planets"]["Mercury"]["karaka"])
         self.assertTrue(len(lean["active_yogas"]) > 0)
         # Verify that yoga results are present in JSON
         first_yoga = lean["active_yogas"][0]
@@ -444,6 +451,7 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertTrue(len(first_yoga["results"]) > 0)
         self.assertIn("current_dasha", lean)
         self.assertIn("sav_bindus", lean)
+        self.assertIn("parashari_aspects", lean)
 
 if __name__ == '__main__':
     unittest.main()
