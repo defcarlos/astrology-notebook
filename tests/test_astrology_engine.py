@@ -206,7 +206,7 @@ class TestAstrologyEngine(unittest.TestCase):
         # --- HTMLReporter SVG Verification ---
         from astrology_engine import HTMLReporter
         import os
-        json_path = os.path.join(ROOT_DIR, "knowledge_base", "steve_jobs", "steve_jobs_astrology_profile.json")
+        json_path = os.path.join(ROOT_DIR, "profiles", "steve_jobs", "steve_jobs_astrology_profile.json")
         template_path = os.path.join(ROOT_DIR, "report_template.html")
         if os.path.exists(json_path):
             reporter = HTMLReporter(json_path, template_path)
@@ -452,6 +452,96 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertIn("current_dasha", lean)
         self.assertIn("sav_bindus", lean)
         self.assertIn("parashari_aspects", lean)
+
+    def test_retrograde_and_combust_indicators(self):
+        """
+        Verify that retrograde planets are marked with (R) and combust planets
+        are marked with (C) in both llm_context.md and report.html outputs.
+        """
+        import os
+        from astrology_engine import HTMLReporter
+
+        chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects = calculate_chart_profile(
+            year=1955, month=2, day=24, time_str="19:15", tz="America/Los_Angeles",
+            lat=37.7749, lon=-122.4194, mode="Tropical-Vedic"
+        )
+        epoch = AstroTime(1955, 2, 24, "19:15", "America/Los_Angeles")
+        dasha_periods = VimshottariDashaEngine(epoch, chart["Moon"].nakshatra, chart["Moon"].sidereal_longitude).dasha_periods
+        subject_profile = {
+            "name": "Steve Jobs",
+            "gender": "Male",
+            "birth_data": {
+                "date": "1955-02-24",
+                "time": "19:15",
+                "timezone": "America/Los_Angeles",
+                "latitude": 37.7749,
+                "longitude": -122.4194
+            }
+        }
+
+        # 1. Verify retrograde planets in Markdown
+        exporter = LLMContextExporter(
+            subject_profile=subject_profile,
+            chart=chart,
+            local_sky=local_sky,
+            report_mode="Tropical-Vedic",
+            yogas=yogas,
+            dasha_periods=dasha_periods,
+            jaimini_karakas=jaimini,
+            planetary_synthesis=synthesis,
+            planetary_aspects=aspects
+        )
+        md = exporter.generate_markdown()
+        self.assertIn("Mercury (R)", md)
+        self.assertIn("Jupiter (R)", md)
+
+        # 2. Simulate combust planet (Mars within 5 degrees of the Sun) and verify (C)
+        sun_lon = chart["Sun"].tropical_longitude
+        chart["Mars"].tropical_longitude = (sun_lon + 3.0) % 360
+        synthesis["Mars"]["avasthas"]["diptadi"]["is_combust"] = True
+
+        exporter_combust = LLMContextExporter(
+            subject_profile=subject_profile,
+            chart=chart,
+            local_sky=local_sky,
+            report_mode="Tropical-Vedic",
+            yogas=yogas,
+            dasha_periods=dasha_periods,
+            jaimini_karakas=jaimini,
+            planetary_synthesis=synthesis,
+            planetary_aspects=aspects
+        )
+        md_combust = exporter_combust.generate_markdown()
+        self.assertIn("Mars (C)", md_combust)
+
+        # 3. Test HTMLReporter with retrograde and combust
+        json_path = os.path.join(ROOT_DIR, "profiles", "steve_jobs", "steve_jobs_astrology_profile.json")
+        template_path = os.path.join(ROOT_DIR, "report_template.html")
+        if os.path.exists(json_path):
+            reporter = HTMLReporter(json_path, template_path)
+            south_svg = reporter.generate_south_chart_svg()
+            self.assertIn("ME(R)", south_svg)
+            self.assertIn("JU(R)", south_svg)
+
+            north_svg = reporter.generate_north_chart_svg()
+            self.assertIn("ME(R)", north_svg)
+            self.assertIn("JU(R)", north_svg)
+
+            # Mark a planet as combust and compile
+            for p in reporter.chart.get("planets", []):
+                if p["name"] == "Venus":
+                    p["is_combust"] = True
+
+            out_test = os.path.join(ROOT_DIR, "scratch_test_report.html")
+            reporter.compile_report(out_test)
+            compiled_html = Path(out_test).read_text(encoding="utf-8")
+            if os.path.exists(out_test):
+                os.remove(out_test)
+
+            self.assertIn('title="Retrograde">R</span>', compiled_html)
+            self.assertIn('title="Combust">C</span>', compiled_html)
+            self.assertIn('Retrograde (R)', compiled_html)
+            self.assertIn('Combust (C)', compiled_html)
 
 if __name__ == '__main__':
     unittest.main()
