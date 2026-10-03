@@ -2750,8 +2750,12 @@ class LLMContextExporter:
         # Planetary table
         md_lines.extend([
             "\n### Planetary Positions & Strength",
-            "| Planet | Sign | House | Deg | Nakshatra | Dignity | Power (Bala) | D9 / D10 | Karaka | Takeaway |",
-            "|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|"
+            "> **AI Interpretation Guide:**",
+            "> - **Placed In (Occupies):** The physical house where the planet resides in this chart.",
+            "> - **Rules (Lord of):** The house(s) governed by this planet based on sign ownership.",
+            "> - **Critical Rule:** A planet does NOT rule the house it occupies unless it resides in its Own Sign (Swakshetra). Never confuse placement with rulership.",
+            "\n| Planet | Sign | Placed In | Rules (Lord of) | Deg | Nakshatra | Dignity | Power (Bala) | D9 / D10 | Karaka | Takeaway |",
+            "|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|"
         ])
 
         for p_name, p_obj in self.chart.items():
@@ -2787,15 +2791,20 @@ class LLMContextExporter:
                 dignity_parts.append("(C)")
             dignity_str = " ".join(dignity_parts)
 
-            # Ruled houses and Yogakaraka status
+            # Explicit Placed In and Rules (Lord of)
+            placed_str = f"House {house}"
             ruled = YogaEngine.get_ruled_houses(p_name, asc_sign)
             is_yk = any(h in [4, 7, 10] for h in ruled) and any(h in [5, 9] for h in ruled)
             if ruled:
-                rule_str = f"L{', L'.join(map(str, ruled))}"
-                yk_str = " - YK" if is_yk else ""
-                house_str = f"{house} ({rule_str}{yk_str})"
+                houses_text = ", ".join(f"House {h}" for h in ruled)
+                rule_annotations = []
+                if house in ruled:
+                    rule_annotations.append("Own House")
+                if is_yk:
+                    rule_annotations.append("Yogakaraka")
+                rules_str = f"{houses_text} ({', '.join(rule_annotations)})" if rule_annotations else houses_text
             else:
-                house_str = f"{house}"
+                rules_str = "None (Node)" if p_name in ["Rahu", "Ketu"] else "None"
 
             # Nakshatra with Pada
             nak_pada = AstroMath.get_nakshatra_pada(p_obj.sidereal_longitude)
@@ -2821,7 +2830,7 @@ class LLMContextExporter:
             p_display = f"{p_name} {' '.join(markers)}".strip()
 
             md_lines.append(
-                f"| {p_display} | {sign} | {house_str} | {deg}° | {nak_str} | {dignity_str} | {power_str} | {varga_str} | {karaka_val} | {takeaway} |"
+                f"| {p_display} | {sign} | {placed_str} | {rules_str} | {deg}° | {nak_str} | {dignity_str} | {power_str} | {varga_str} | {karaka_val} | {takeaway} |"
             )
 
         # Active Yogas with Traditional Interpretive Results (Deduplicated)
@@ -2964,6 +2973,7 @@ class LLMContextExporter:
             compact_planets[p_name] = {
                 "sign": sign,
                 "house": house,
+                "placed_in_house": house,
                 "deg": deg,
                 "nakshatra": p_obj.nakshatra,
                 "nakshatra_pada": nak_pada,
@@ -2971,6 +2981,7 @@ class LLMContextExporter:
                 "is_retrograde": is_retro,
                 "is_combust": is_combust,
                 "ruled_houses": ruled,
+                "rules_houses": ruled,
                 "is_yogakaraka": is_yk,
                 "power": bala_lvl if bala_lvl else "N/A",
                 "bala": round(bala_total, 1) if bala_total is not None else None,
