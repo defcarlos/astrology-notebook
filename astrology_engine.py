@@ -2624,6 +2624,18 @@ class LLMContextExporter:
         "Darakaraka": "Darakaraka (Spouse/Partners)"
     }
 
+    PLANET_ORDER = [
+        "Sun",
+        "Moon",
+        "Mars",
+        "Mercury",
+        "Jupiter",
+        "Venus",
+        "Saturn",
+        "Rahu",
+        "Ketu"
+    ]
+
     def __init__(
         self,
         subject_profile: dict,
@@ -2758,7 +2770,24 @@ class LLMContextExporter:
             "|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|"
         ])
 
+        # 1. Ascendant Row
+        asc_d9 = VargaEngine.calculate_d9(asc_lon) if self.report_mode != "Tropical Focus" else "-"
+        asc_d10 = VargaEngine.calculate_d10(asc_lon) if self.report_mode != "Tropical Focus" else "-"
+        asc_varga_str = f"{asc_d9} / {asc_d10}" if self.report_mode != "Tropical Focus" else "-"
+        md_lines.append(
+            f"| Ascendant | {asc_sign} | House 1 | House 1 (Lagna) | {asc_deg}° | {asc_nak} (P{asc_pada}) | - | - | {asc_varga_str} | Lagna / Self | Chart Anchor |"
+        )
+
+        # 2. Planetary Rows in canonical Navagraha order
+        ordered_planets = []
+        for p in self.PLANET_ORDER:
+            if p in self.chart:
+                ordered_planets.append((p, self.chart[p]))
         for p_name, p_obj in self.chart.items():
+            if p_name not in self.PLANET_ORDER:
+                ordered_planets.append((p_name, p_obj))
+
+        for p_name, p_obj in ordered_planets:
             sign = p_obj.sidereal_sign if is_sid else p_obj.zodiac_sign
             house = p_obj.vedic_house if is_sid else p_obj.tropical_house
             lon = p_obj.sidereal_longitude if is_sid else p_obj.tropical_longitude
@@ -2939,7 +2968,15 @@ class LLMContextExporter:
             sun_lon = sun_obj.sidereal_longitude if is_sid else sun_obj.tropical_longitude
 
         compact_planets = {}
+        ordered_planets = []
+        for p in self.PLANET_ORDER:
+            if p in self.chart:
+                ordered_planets.append((p, self.chart[p]))
         for p_name, p_obj in self.chart.items():
+            if p_name not in self.PLANET_ORDER:
+                ordered_planets.append((p_name, p_obj))
+
+        for p_name, p_obj in ordered_planets:
             sign = p_obj.sidereal_sign if is_sid else p_obj.zodiac_sign
             house = p_obj.vedic_house if is_sid else p_obj.tropical_house
             lon = p_obj.sidereal_longitude if is_sid else p_obj.tropical_longitude
@@ -3059,7 +3096,9 @@ class LLMContextExporter:
                 "sign": asc_sign,
                 "degree_in_house": asc_deg,
                 "nakshatra": asc_nak,
-                "nakshatra_pada": asc_pada
+                "nakshatra_pada": asc_pada,
+                "d9": VargaEngine.calculate_d9(asc_lon) if self.report_mode != "Tropical Focus" else None,
+                "d10": VargaEngine.calculate_d10(asc_lon) if self.report_mode != "Tropical Focus" else None
             },
             "current_dasha": current_dasha,
             "next_antardasha": next_antardasha,
