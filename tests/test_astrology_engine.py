@@ -441,6 +441,10 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertIn("SAV Bindus", md)
         self.assertIn("D9 / D10", md)
         self.assertIn("Atmakaraka", md)
+        # Verify Ascendant is in table and follows canonical Navagraha order
+        table_rows = [line.split("|")[1].strip().split()[0] for line in md.splitlines() if line.startswith("|") and not line.startswith("| Planet") and not line.startswith("|:---")]
+        expected_order = ["Ascendant", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
+        self.assertEqual(table_rows, expected_order)
         # Verify all transit planets including Saturn, Rahu, and Ketu are not truncated
         self.assertIn("Saturn: Aries (H1)", md)
         self.assertIn("Rahu: Aquarius (H11*)", md)
@@ -449,6 +453,9 @@ class TestAstrologyEngine(unittest.TestCase):
         # 2. Verify lean JSON generation
         lean = exporter.generate_lean_json()
         self.assertEqual(lean["subject"]["name"], "Steve Jobs")
+        self.assertEqual(list(lean["planets"].keys()), ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"])
+        self.assertIn("d9", lean["ascendant"])
+        self.assertIn("d10", lean["ascendant"])
         self.assertIn("Sun", lean["planets"])
         self.assertEqual(lean["planets"]["Sun"]["sign"], "Pisces")
         self.assertIn("nakshatra_pada", lean["planets"]["Sun"])
