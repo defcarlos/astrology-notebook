@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 import json
+import math
 import threading
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone, timedelta
@@ -11,6 +13,12 @@ import swisseph as swe
 
 # Thread lock for Swiss Ephemeris C-level global state (Python 3.14 free-threading safety)
 _swe_lock = threading.Lock()
+
+# Auto-configure default Swiss Ephemeris path if local 'ephe' directory exists
+_default_ephe = Path(__file__).resolve().parent / "ephe"
+if _default_ephe.exists():
+    with _swe_lock:
+        swe.set_ephe_path(str(_default_ephe))
 
 # PEP 695 type aliases (Python 3.12+)
 type PlanetMap = dict[str, Planet]
@@ -99,13 +107,13 @@ class HouseEngine:
         else:
             hsys = b'P'
         
-        # Calculate Tropical houses
-        cusps_t, asmc_t = swe.houses_ex(self.jd, lat, lon, hsys)
+        with _swe_lock:
+            # Calculate Tropical houses
+            cusps_t, asmc_t = swe.houses_ex(self.jd, lat, lon, hsys)
+            # Calculate Sidereal houses
+            cusps_s, asmc_s = swe.houses_ex(self.jd, lat, lon, hsys, flags=swe.FLG_SIDEREAL)
         self.tropical_ascendant = asmc_t[0]
         self.tropical_ascendant_sign = AstroMath.get_zodiac(self.tropical_ascendant)
-        
-        # Calculate Sidereal houses
-        cusps_s, asmc_s = swe.houses_ex(self.jd, lat, lon, hsys, flags=swe.FLG_SIDEREAL)
         self.sidereal_ascendant = asmc_s[0]
         self.sidereal_ascendant_sign = AstroMath.get_zodiac(self.sidereal_ascendant)
         
@@ -121,20 +129,36 @@ class HouseEngine:
             }
 # --- 2. ASTRO MATH & DIGNITY UTILITIES ---
 class AstroMath:
+    SIGN_SPAN: float = 30.0
+    NAKSHATRA_SPAN: float = 360.0 / 27.0  # 13.333333333333334 degrees (13° 20')
+    PADA_SPAN: float = 360.0 / 108.0      # 3.3333333333333335 degrees (3° 20')
+    COMBUSTION_ORB: float = 8.0
+
     ZODIAC_SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
     NAKSHATRAS = ["Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra", "Punarvasu", "Pushya", "Ashlesha", "Magha", "Purva Phalguni", "Uttara Phalguni", "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha", "Mula", "Purva Ashadha", "Uttara Ashadha", "Shravana", "Dhanishta", "Shatabhisha", "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"]
 
     @classmethod
-    def get_zodiac(cls, longitude):
-        return cls.ZODIAC_SIGNS[int(longitude // 30) % 12]
+    def is_sidereal_mode(cls, mode: str) -> bool:
+        """Returns True if the calculation mode uses sidereal zodiac for planets/ascendant."""
+        return mode not in ["Tropical-Vedic", "Tropical Focus"]
 
     @classmethod
-    def get_nakshatra(cls, longitude):
-        return cls.NAKSHATRAS[int(((longitude % 360.0) * 27.0) / 360.0) % 27]
+    def get_sign_and_degree(cls, longitude: float) -> tuple[int, float]:
+        """Returns (sign_index [0-11], degree_within_sign [0.0-30.0))."""
+        sign_idx, deg_in_sign = divmod(longitude % 360.0, cls.SIGN_SPAN)
+        return int(sign_idx), deg_in_sign
 
     @classmethod
-    def get_nakshatra_pada(cls, longitude):
-        return int(((longitude % 360.0) * 108.0) / 360.0) % 4 + 1
+    def get_zodiac(cls, longitude: float) -> str:
+        return cls.ZODIAC_SIGNS[int(longitude // cls.SIGN_SPAN) % 12]
+
+    @classmethod
+    def get_nakshatra(cls, longitude: float) -> str:
+        return cls.NAKSHATRAS[int((longitude % 360.0) / cls.NAKSHATRA_SPAN) % 27]
+
+    @classmethod
+    def get_nakshatra_pada(cls, longitude: float) -> int:
+        return int((longitude % 360.0) / cls.PADA_SPAN) % 4 + 1
 
     @classmethod
     def get_house_placement(cls, longitude, houses_dict, is_sidereal=False):
@@ -224,7 +248,7 @@ class VargaEngine:
     def get_vargas(planet_obj, mode):
         if mode == "Tropical Focus":
             return {}
-        lon = planet_obj.tropical_longitude if mode == "Tropical-Vedic" else planet_obj.sidereal_longitude
+        lon = planet_obj.get_longitude(mode != "Tropical-Vedic")
         return {
             "D1": VargaEngine.calculate_d1(lon),
             "D2": VargaEngine.calculate_d2(lon),
@@ -246,12 +270,11 @@ class VargaEngine:
 
     @staticmethod
     def calculate_d1(lon):
-        return AstroMath.ZODIAC_SIGNS[int(lon // 30) % 12]
+        return AstroMath.get_zodiac(lon)
 
     @staticmethod
     def calculate_d2(lon):
-        sign_idx = int(lon // 30) % 12
-        offset = lon % 30
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
         if sign_idx % 2 == 0:  # Odd sign
             return "Leo" if offset < 15 else "Cancer"
         else:  # Even sign
@@ -259,20 +282,20 @@ class VargaEngine:
 
     @staticmethod
     def calculate_d3(lon):
-        sign_idx = int(lon // 30) % 12
-        part = int((lon % 30) // 10)
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
+        part = int(offset // 10)
         return AstroMath.ZODIAC_SIGNS[(sign_idx + part * 4) % 12]
 
     @staticmethod
     def calculate_d4(lon):
-        sign_idx = int(lon // 30) % 12
-        part = int((lon % 30) // 7.5)
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
+        part = int(offset // 7.5)
         return AstroMath.ZODIAC_SIGNS[(sign_idx + part * 3) % 12]
 
     @staticmethod
     def calculate_d7(lon):
-        sign_idx = int(lon // 30) % 12
-        part = int((lon % 30) // (30 / 7))
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
+        part = int(offset // (30 / 7))
         start = sign_idx if sign_idx % 2 == 0 else (sign_idx + 6) % 12
         return AstroMath.ZODIAC_SIGNS[(start + part) % 12]
 
@@ -282,18 +305,20 @@ class VargaEngine:
 
     @staticmethod
     def calculate_d10(lon):
-        s_idx, p_idx = int(lon // 30), int((lon % 30) // 3)
+        s_idx, offset = AstroMath.get_sign_and_degree(lon)
+        p_idx = int(offset // 3)
         start = s_idx if s_idx % 2 == 0 else (s_idx + 8) % 12
         return AstroMath.ZODIAC_SIGNS[(start + p_idx) % 12]
 
     @staticmethod
     def calculate_d12(lon):
-        return AstroMath.ZODIAC_SIGNS[(int(lon // 30) + int((lon % 30) // 2.5)) % 12]
+        s_idx, offset = AstroMath.get_sign_and_degree(lon)
+        return AstroMath.ZODIAC_SIGNS[(s_idx + int(offset // 2.5)) % 12]
 
     @staticmethod
     def calculate_d16(lon):
-        sign_idx = int(lon // 30) % 12
-        part = int((lon % 30) // 1.875)
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
+        part = int(offset // 1.875)
         if sign_idx in [0, 3, 6, 9]:  # Movable: Aries, Cancer, Libra, Capricorn
             start = 0
         elif sign_idx in [1, 4, 7, 10]:  # Fixed: Taurus, Leo, Scorpio, Aquarius
@@ -304,8 +329,8 @@ class VargaEngine:
 
     @staticmethod
     def calculate_d20(lon):
-        sign_idx = int(lon // 30) % 12
-        part = int((lon % 30) // 1.5)
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
+        part = int(offset // 1.5)
         if sign_idx in [0, 3, 6, 9]:  # Movable
             start = 0
         elif sign_idx in [1, 4, 7, 10]:  # Fixed
@@ -316,18 +341,15 @@ class VargaEngine:
 
     @staticmethod
     def calculate_d24(lon):
-        sign_idx = int(lon // 30) % 12
-        part = int((lon % 30) // 1.25)
-        if sign_idx % 2 == 0:  # Odd sign
-            start = 4  # Leo
-        else:  # Even sign
-            start = 3  # Cancer
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
+        part = int(offset // 1.25)
+        start = 4 if sign_idx % 2 == 0 else 3  # Odd: Leo (4), Even: Cancer (3)
         return AstroMath.ZODIAC_SIGNS[(start + part) % 12]
 
     @staticmethod
     def calculate_d27(lon):
-        sign_idx = int(lon // 30) % 12
-        part = int((lon % 30) // (30.0 / 27.0))
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
+        part = int(offset // (30.0 / 27.0))
         if sign_idx in [0, 4, 8]:  # Fire
             start = 0
         elif sign_idx in [1, 5, 9]:  # Earth
@@ -340,8 +362,7 @@ class VargaEngine:
 
     @staticmethod
     def calculate_d30(lon):
-        sign_idx = int(lon // 30) % 12
-        offset = lon % 30
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
         if sign_idx % 2 == 0:  # Odd sign
             if offset < 5:
                 return "Aries"
@@ -367,15 +388,15 @@ class VargaEngine:
 
     @staticmethod
     def calculate_d40(lon):
-        sign_idx = int(lon // 30) % 12
-        part = int((lon % 30) // 0.75)
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
+        part = int(offset // 0.75)
         start = 0 if sign_idx % 2 == 0 else 6
         return AstroMath.ZODIAC_SIGNS[(start + part) % 12]
 
     @staticmethod
     def calculate_d45(lon):
-        sign_idx = int(lon // 30) % 12
-        part = int((lon % 30) // (2.0 / 3.0))
+        sign_idx, offset = AstroMath.get_sign_and_degree(lon)
+        part = int(offset // (2.0 / 3.0))
         if sign_idx in [0, 3, 6, 9]:  # Movable
             start = 0
         elif sign_idx in [1, 4, 7, 10]:  # Fixed
@@ -386,7 +407,8 @@ class VargaEngine:
 
     @staticmethod
     def calculate_d60(lon):
-        return AstroMath.ZODIAC_SIGNS[(int(lon // 30) + int((lon % 30) // 0.5)) % 12]
+        s_idx, offset = AstroMath.get_sign_and_degree(lon)
+        return AstroMath.ZODIAC_SIGNS[(s_idx + int(offset // 0.5)) % 12]
 
 @dataclass(slots=True)
 class Planet:
@@ -411,45 +433,107 @@ class Planet:
     def __init__(
         self,
         name: str,
+        tropical_longitude: Any = 0.0,
+        sidereal_longitude: Any = 0.0,
+        *args,
+        mode: str = "Everything",
+        base_planet: Planet | None = None,
+        **kwargs
+    ) -> None:
+        self.name = name
+        self.tropical_house = kwargs.get("tropical_house", None)
+        self.vedic_house = kwargs.get("vedic_house", None)
+        self.shadbala = kwargs.get("shadbala", None)
+        self.avasthas = kwargs.get("avasthas", {})
+        self.vargas = kwargs.get("vargas", {})
+
+        if isinstance(sidereal_longitude, AstroTime):
+            # Legacy constructor invocation: Planet(name, swe_const, astro_time, mode, base_planet)
+            swe_const = tropical_longitude
+            astro_time = sidereal_longitude
+            mode_val = args[0] if args else mode
+            base_p = args[1] if len(args) > 1 else base_planet
+            self.jd = astro_time.jd
+            if base_p:
+                self.tropical_longitude = (base_p.tropical_longitude + 180.0) % 360.0
+                self.tropical_speed = base_p.tropical_speed
+                self.sidereal_longitude = (base_p.sidereal_longitude + 180.0) % 360.0
+                self.sidereal_speed = base_p.sidereal_speed
+            else:
+                with _swe_lock:
+                    t_d = swe.calc_ut(self.jd, swe_const, swe.FLG_SPEED)[0]
+                    s_d = swe.calc_ut(self.jd, swe_const, swe.FLG_SIDEREAL | swe.FLG_SPEED)[0]
+                self.tropical_longitude, self.tropical_speed = t_d[0], t_d[3]
+                self.sidereal_longitude, self.sidereal_speed = s_d[0], s_d[3]
+
+            self.zodiac_sign = AstroMath.get_zodiac(self.tropical_longitude)
+            self.sidereal_sign = AstroMath.get_zodiac(self.sidereal_longitude)
+            self.nakshatra = AstroMath.get_nakshatra(self.sidereal_longitude)
+            self.tropical_dignity = DignityEngine.get_dignity(self.name, self.zodiac_sign)
+            self.sidereal_dignity = DignityEngine.get_dignity(self.name, self.sidereal_sign)
+            self.dignity = self.sidereal_dignity if mode_val in ["Vedic Focus", "Everything"] else self.tropical_dignity
+            self.vargas = VargaEngine.get_vargas(self, mode_val)
+        else:
+            # Dataclass initialization
+            self.tropical_longitude = float(tropical_longitude)
+            self.sidereal_longitude = float(sidereal_longitude)
+            self.tropical_speed = float(kwargs.get("tropical_speed", 0.0))
+            self.sidereal_speed = float(kwargs.get("sidereal_speed", 0.0))
+            self.zodiac_sign = kwargs.get("zodiac_sign") or AstroMath.get_zodiac(self.tropical_longitude)
+            self.sidereal_sign = kwargs.get("sidereal_sign") or AstroMath.get_zodiac(self.sidereal_longitude)
+            self.nakshatra = kwargs.get("nakshatra") or AstroMath.get_nakshatra(self.sidereal_longitude)
+            self.tropical_dignity = kwargs.get("tropical_dignity") or DignityEngine.get_dignity(self.name, self.zodiac_sign)
+            self.sidereal_dignity = kwargs.get("sidereal_dignity") or DignityEngine.get_dignity(self.name, self.sidereal_sign)
+            self.dignity = kwargs.get("dignity") or (self.sidereal_dignity if mode in ["Vedic Focus", "Everything"] else self.tropical_dignity)
+            self.jd = float(kwargs.get("jd", 0.0))
+            if not self.vargas:
+                self.vargas = VargaEngine.get_vargas(self, mode)
+
+    @classmethod
+    def from_ephemeris(
+        cls,
+        name: str,
         swe_const: int | None,
         astro_time: AstroTime,
         mode: str = "Everything",
         base_planet: Planet | None = None
-    ) -> None:
-        self.name = name
-        self.jd = astro_time.jd
-        self.tropical_house = None
-        self.vedic_house = None
-        self.shadbala = None
-        self.avasthas = {}
+    ) -> Planet:
+        """Factory method to calculate and instantiate a Planet directly from Swiss Ephemeris."""
+        return cls(name, swe_const, astro_time, mode, base_planet=base_planet)
 
-        if base_planet:
-            self.tropical_longitude = (base_planet.tropical_longitude + 180) % 360
-            self.tropical_speed = base_planet.tropical_speed
-            self.sidereal_longitude = (base_planet.sidereal_longitude + 180) % 360
-            self.sidereal_speed = base_planet.sidereal_speed
-        else:
-            with _swe_lock:
-                t_d = swe.calc_ut(self.jd, swe_const, swe.FLG_SPEED)[0]
-                s_d = swe.calc_ut(self.jd, swe_const, swe.FLG_SIDEREAL | swe.FLG_SPEED)[0]
-            self.tropical_longitude, self.tropical_speed = t_d[0], t_d[3]
-            self.sidereal_longitude, self.sidereal_speed = s_d[0], s_d[3]
+    def get_longitude(self, mode_or_is_sid: str | bool) -> float:
+        """Returns sidereal or tropical longitude depending on mode name or boolean flag."""
+        is_sid = mode_or_is_sid if isinstance(mode_or_is_sid, bool) else AstroMath.is_sidereal_mode(mode_or_is_sid)
+        return self.sidereal_longitude if is_sid else self.tropical_longitude
 
-        self.zodiac_sign = AstroMath.get_zodiac(self.tropical_longitude)
-        self.sidereal_sign = AstroMath.get_zodiac(self.sidereal_longitude)
-        self.nakshatra = AstroMath.get_nakshatra(self.sidereal_longitude)
-        self.tropical_dignity = DignityEngine.get_dignity(self.name, self.zodiac_sign)
-        self.sidereal_dignity = DignityEngine.get_dignity(self.name, self.sidereal_sign)
-        self.dignity = self.sidereal_dignity if mode in ["Vedic Focus", "Everything"] else self.tropical_dignity
-        self.vargas = VargaEngine.get_vargas(self, mode)
+    def get_house(self, mode_or_is_sid: str | bool) -> int | None:
+        """Returns vedic or tropical house number depending on mode name or boolean flag."""
+        is_sid = mode_or_is_sid if isinstance(mode_or_is_sid, bool) else AstroMath.is_sidereal_mode(mode_or_is_sid)
+        return self.vedic_house if is_sid else self.tropical_house
+
+    def get_sign(self, mode_or_is_sid: str | bool) -> str:
+        """Returns sidereal sign or tropical zodiac sign depending on mode name or boolean flag."""
+        is_sid = mode_or_is_sid if isinstance(mode_or_is_sid, bool) else AstroMath.is_sidereal_mode(mode_or_is_sid)
+        return self.sidereal_sign if is_sid else self.zodiac_sign
+
+    def get_speed(self, mode_or_is_sid: str | bool) -> float:
+        """Returns sidereal or tropical daily motion speed."""
+        is_sid = mode_or_is_sid if isinstance(mode_or_is_sid, bool) else AstroMath.is_sidereal_mode(mode_or_is_sid)
+        return self.sidereal_speed if is_sid else self.tropical_speed
+
+    def get_degree_in_sign(self, mode_or_is_sid: str | bool) -> float:
+        """Returns degree within the active sign (0.0 to 30.0)."""
+        lon = self.get_longitude(mode_or_is_sid)
+        return lon % AstroMath.SIGN_SPAN
+
 
 class ChartFactory:
     PLANETS = {"Sun": swe.SUN, "Moon": swe.MOON, "Mercury": swe.MERCURY, "Venus": swe.VENUS, "Mars": swe.MARS, "Jupiter": swe.JUPITER, "Saturn": swe.SATURN, "Rahu": swe.TRUE_NODE}
     @classmethod
     def create_chart(cls, astro_time, mode="Everything"):
-        chart = {n: Planet(n, c, astro_time, mode) for n, c in cls.PLANETS.items()}
+        chart = {n: Planet.from_ephemeris(n, c, astro_time, mode) for n, c in cls.PLANETS.items()}
         rahu = chart["Rahu"]
-        ketu = Planet("Ketu", None, astro_time, mode, base_planet=rahu)
+        ketu = Planet.from_ephemeris("Ketu", None, astro_time, mode, base_planet=rahu)
         chart["Ketu"] = ketu
         return chart
 
@@ -506,12 +590,12 @@ class ShadbalaEngine:
             if lord == planet_name:
                 total_points += 30.0
             else:
-                is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
+                is_sid = AstroMath.is_sidereal_mode(mode)
                 lord_planet = chart.get(lord)
                 if not lord_planet:
                     continue
-                h_planet = AstroMath.get_house_placement(planet_obj.sidereal_longitude if is_sid else planet_obj.tropical_longitude, houses_dict, is_sid)
-                h_lord = AstroMath.get_house_placement(lord_planet.sidereal_longitude if is_sid else lord_planet.tropical_longitude, houses_dict, is_sid)
+                h_planet = planet_obj.get_house(is_sid) or AstroMath.get_house_placement(planet_obj.get_longitude(is_sid), houses_dict, is_sid)
+                h_lord = lord_planet.get_house(is_sid) or AstroMath.get_house_placement(lord_planet.get_longitude(is_sid), houses_dict, is_sid)
                 rel = FriendshipEngine.get_panchadha_relationship(planet_name, lord, h_planet, h_lord)
                 
                 relationship_scores = {
@@ -525,8 +609,8 @@ class ShadbalaEngine:
     def get_sthana_bala(cls, planet_name, planet_obj, chart, houses_dict, house_num, mode):
         if planet_name not in cls.EXALTATIONS:
             return {}
-        is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
-        lon = planet_obj.sidereal_longitude if is_sid else planet_obj.tropical_longitude
+        is_sid = AstroMath.is_sidereal_mode(mode)
+        lon = planet_obj.get_longitude(is_sid)
         
         ucca = cls.calculate_ucca_bala(planet_name, lon)
         kendra = cls.calculate_kendra_bala(house_num)
@@ -598,13 +682,13 @@ class ShadbalaEngine:
     def calculate_drik_bala(cls, planet_name, planet_obj, chart, mode):
         if planet_name not in cls.EXALTATIONS:
             return 0.0
-        is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
-        lon1 = planet_obj.sidereal_longitude if is_sid else planet_obj.tropical_longitude
+        is_sid = AstroMath.is_sidereal_mode(mode)
+        lon1 = planet_obj.get_longitude(is_sid)
         drik_score = 0.0
         for name, other in chart.items():
             if name == planet_name or name not in cls.EXALTATIONS:
                 continue
-            lon2 = other.sidereal_longitude if is_sid else other.tropical_longitude
+            lon2 = other.get_longitude(is_sid)
             diff = abs(lon1 - lon2) % 360
             aspects = [0.0, 60.0, 90.0, 120.0, 180.0]
             has_aspect = False
@@ -626,25 +710,25 @@ class ShadbalaEngine:
         sthana = cls.get_sthana_bala(planet_name, planet_obj, chart, houses_dict, house_num, mode)
         if not sthana:
             return {}
-        is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = AstroMath.is_sidereal_mode(mode)
         dig = cls.calculate_dig_bala(planet_name, house_num)
         
         sun_obj = chart.get("Sun")
         is_day = True
         if sun_obj:
-            sun_house = sun_obj.vedic_house if is_sid else sun_obj.tropical_house
+            sun_house = sun_obj.get_house(is_sid)
             is_day = sun_house in [7, 8, 9, 10, 11, 12]
         divaratri = cls.calculate_divaratri_bala(planet_name, is_day)
         
         moon_obj = chart.get("Moon")
         paksha = 0.0
         if moon_obj and sun_obj:
-            moon_lon = moon_obj.sidereal_longitude if is_sid else moon_obj.tropical_longitude
-            sun_lon = sun_obj.sidereal_longitude if is_sid else sun_obj.tropical_longitude
+            moon_lon = moon_obj.get_longitude(is_sid)
+            sun_lon = sun_obj.get_longitude(is_sid)
             paksha = cls.calculate_paksha_bala(planet_name, moon_lon, sun_lon)
         kala = round(divaratri + paksha, 4)
         
-        speed = planet_obj.sidereal_speed if is_sid else planet_obj.tropical_speed
+        speed = planet_obj.get_speed(is_sid)
         cheshta = cls.calculate_cheshta_bala(planet_name, speed)
         naisargika = cls.calculate_naisargika_bala(planet_name)
         drik = cls.calculate_drik_bala(planet_name, planet_obj, chart, mode)
@@ -740,13 +824,14 @@ class AshtakavargaEngine:
 
     @classmethod
     def calculate_ashtakavarga(cls, chart, local_sky, mode):
+        is_sid = AstroMath.is_sidereal_mode(mode)
         planet_signs = {}
         for name in ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]:
-            lon = chart[name].tropical_longitude if mode in ["Tropical-Vedic", "Tropical Focus"] else chart[name].sidereal_longitude
-            sign_idx = int(lon // 30) % 12
+            lon = chart[name].get_longitude(is_sid)
+            sign_idx, _ = AstroMath.get_sign_and_degree(lon)
             planet_signs[name] = sign_idx
             
-        lagna_sign_name = local_sky.tropical_ascendant_sign if mode in ["Tropical-Vedic", "Tropical Focus"] else local_sky.sidereal_ascendant_sign
+        lagna_sign_name = local_sky.sidereal_ascendant_sign if is_sid else local_sky.tropical_ascendant_sign
         lagna_sign_idx = AstroMath.ZODIAC_SIGNS.index(lagna_sign_name)
         planet_signs["Lagna"] = lagna_sign_idx
         
@@ -1019,80 +1104,68 @@ class YogaEngine:
                 
         if cand_name in chart:
             p = chart[cand_name]
+            p_house = p.get_house(is_sid)
+            p_lon = p.get_longitude(is_sid)
+
             if prop_name == "house":
-                return p.vedic_house if is_sid else p.tropical_house
+                return p_house
             if prop_name == "dignity":
-                lon = p.sidereal_longitude if is_sid else p.tropical_longitude
-                return cls.get_rules_dignity(cand_name, lon, chart, is_sid)
+                return cls.get_rules_dignity(cand_name, p_lon, chart, is_sid)
             if prop_name == "relative_house_to_sun":
                 sun = chart.get("Sun")
-                h = p.vedic_house if is_sid else p.tropical_house
-                sun_h = sun.vedic_house if is_sid else sun.tropical_house
-                return (h - sun_h) % 12 + 1
+                return (p_house - sun.get_house(is_sid)) % 12 + 1 if (sun and p_house) else 0
             if prop_name == "relative_house_to_moon":
                 moon = chart.get("Moon")
-                h = p.vedic_house if is_sid else p.tropical_house
-                moon_h = moon.vedic_house if is_sid else moon.tropical_house
-                return (h - moon_h) % 12 + 1
+                return (p_house - moon.get_house(is_sid)) % 12 + 1 if (moon and p_house) else 0
             if prop_name == "relative_house_to_lagna":
-                return p.vedic_house if is_sid else p.tropical_house
+                return p_house
             if prop_name == "relative_house_to_lagna_or_moon":
-                h = p.vedic_house if is_sid else p.tropical_house
                 moon = chart.get("Moon")
-                moon_h = moon.vedic_house if is_sid else moon.tropical_house
-                rel_moon = (h - moon_h) % 12 + 1
-                return 10 if (h == 10 or rel_moon == 10) else 0
+                rel_moon = (p_house - moon.get_house(is_sid)) % 12 + 1 if (moon and p_house) else 0
+                return 10 if (p_house == 10 or rel_moon == 10) else 0
             if prop_name == "relative_house_to_jupiter":
                 jupiter = chart.get("Jupiter")
-                h = p.vedic_house if is_sid else p.tropical_house
-                jup_h = jupiter.vedic_house if is_sid else jupiter.tropical_house
-                return (h - jup_h) % 12 + 1
+                return (p_house - jupiter.get_house(is_sid)) % 12 + 1 if (jupiter and p_house) else 0
             if prop_name == "relative_house_to_target":
                 t_param = rule.get("target_parameter")
                 resolved = cls.resolve_candidates(t_param, chart, lagna_sign, is_sid, bindings)
-                if resolved and resolved[0] in chart:
-                    h = p.vedic_house if is_sid else p.tropical_house
-                    t_h = chart[resolved[0]].vedic_house if is_sid else chart[resolved[0]].tropical_house
-                    return (h - t_h) % 12 + 1
+                if resolved and resolved[0] in chart and p_house:
+                    t_h = chart[resolved[0]].get_house(is_sid)
+                    return (p_house - t_h) % 12 + 1 if t_h else 0
                 return 0
             if prop_name == "aspects_target":
                 t_param = rule.get("target_parameter")
                 resolved = cls.resolve_candidates(t_param, chart, lagna_sign, is_sid, bindings)
-                if resolved and resolved[0] in chart:
-                    p_house = p.vedic_house if is_sid else p.tropical_house
-                    t_house = chart[resolved[0]].vedic_house if is_sid else chart[resolved[0]].tropical_house
-                    d = (t_house - p_house) % 12 + 1
-                    if d == 7:
-                        return True
-                    if cand_name == "Mars" and d in [4, 8]:
-                        return True
-                    if cand_name == "Jupiter" and d in [5, 9]:
-                        return True
-                    if cand_name == "Saturn" and d in [3, 10]:
-                        return True
+                if resolved and resolved[0] in chart and p_house:
+                    t_house = chart[resolved[0]].get_house(is_sid)
+                    if t_house:
+                        d = (t_house - p_house) % 12 + 1
+                        if d == 7:
+                            return True
+                        if cand_name == "Mars" and d in [4, 8]:
+                            return True
+                        if cand_name == "Jupiter" and d in [5, 9]:
+                            return True
+                        if cand_name == "Saturn" and d in [3, 10]:
+                            return True
                 return False
             if prop_name == "is_aspected_by":
-                p_house = p.vedic_house if is_sid else p.tropical_house
-                return cls.get_aspecting_planets(p_house, chart, is_sid)
+                return cls.get_aspecting_planets(p_house, chart, is_sid) if p_house else []
             if prop_name == "is_unblemished":
                 sun = chart.get("Sun")
                 return cls.is_unblemished(p, sun, is_sid)
             if prop_name == "is_strong":
                 return cls.is_planet_strong(cand_name, p)
             if prop_name == "sign":
-                lon = p.sidereal_longitude if is_sid else p.tropical_longitude
-                return AstroMath.get_zodiac(lon)
+                return AstroMath.get_zodiac(p_lon)
             if prop_name == "sign_polarity":
-                lon = p.sidereal_longitude if is_sid else p.tropical_longitude
-                sign = AstroMath.get_zodiac(lon)
+                sign = AstroMath.get_zodiac(p_lon)
                 idx = AstroMath.ZODIAC_SIGNS.index(sign)
                 return "Odd" if idx % 2 == 0 else "Even"
             if prop_name == "sign_quality":
-                lon = p.sidereal_longitude if is_sid else p.tropical_longitude
-                return cls.get_sign_quality(lon)
+                return cls.get_sign_quality(p_lon)
             if prop_name == "dispositor":
-                lon = p.sidereal_longitude if is_sid else p.tropical_longitude
-                sign = AstroMath.get_zodiac(lon)
+                sign = AstroMath.get_zodiac(p_lon)
                 return cls.LORDSHIPS[sign]
             if prop_name == "rules_house":
                 return cls.get_ruled_houses(cand_name, lagna_sign)
@@ -1213,7 +1286,7 @@ class YogaEngine:
         else:
             raise FileNotFoundError(f"Yoga rules file not found: {rules_path}")
                 
-        is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = AstroMath.is_sidereal_mode(mode)
         lagna_sign = local_sky.sidereal_ascendant_sign if is_sid else local_sky.tropical_ascendant_sign
         
         yogas_output = {}
@@ -1259,15 +1332,16 @@ class GocharaEngine:
 
     @classmethod
     def evaluate_transits(cls, natal_chart, transit_chart, mode):
-        m_lon = natal_chart["Moon"].tropical_longitude if mode in ["Tropical-Vedic", "Tropical Focus"] else natal_chart["Moon"].sidereal_longitude
-        m_sign_idx = int(m_lon // 30) % 12
+        is_sid = AstroMath.is_sidereal_mode(mode)
+        m_lon = natal_chart["Moon"].get_longitude(is_sid)
+        m_sign_idx, _ = AstroMath.get_sign_and_degree(m_lon)
         results = {}
         for name in ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]:
             if name not in transit_chart:
                 continue
             t_p = transit_chart[name]
-            t_lon = t_p.tropical_longitude if mode in ["Tropical-Vedic", "Tropical Focus"] else t_p.sidereal_longitude
-            t_sign_idx = int(t_lon // 30) % 12
+            t_lon = t_p.get_longitude(is_sid)
+            t_sign_idx, _ = AstroMath.get_sign_and_degree(t_lon)
             h_from_moon = (t_sign_idx - m_sign_idx) % 12 + 1
             is_auspicious = h_from_moon in cls.AUSPICIOUS.get(name, [])
             results[name] = {
@@ -1380,8 +1454,11 @@ class HTMLReporter:
         "Shatabhisha", "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
     ]
 
-    def __init__(self, json_path: str | Path, template_path: str | Path) -> None:
-        self.data = json.loads(Path(json_path).read_text(encoding="utf-8"))
+    def __init__(self, data_or_path: dict | str | Path, template_path: str | Path) -> None:
+        if isinstance(data_or_path, dict):
+            self.data = copy.deepcopy(data_or_path)
+        else:
+            self.data = json.loads(Path(data_or_path).read_text(encoding="utf-8"))
         self.meta = self.data.get('metadata', {})
         if 'settings' not in self.meta or not isinstance(self.meta['settings'], dict):
             self.meta['settings'] = {}
@@ -1400,15 +1477,30 @@ class HTMLReporter:
                 case 5:  settings['ayanamsa_name'] = "KP"
                 case ay: settings['ayanamsa_name'] = f"Custom ({ay})"
         self.subject = self.data.get('subject', {})
+        if 'birth_data' not in self.subject or not isinstance(self.subject['birth_data'], dict):
+            self.subject['birth_data'] = {}
         self.chart = self.data.get('astrological_chart', {})
         if 'ascendant' in self.chart and isinstance(self.chart['ascendant'], dict):
             asc = self.chart['ascendant']
-            if 'sidereal_nakshatra' not in asc and 'sidereal_longitude' in asc:
-                asc['sidereal_nakshatra'] = AstroMath.get_nakshatra(asc['sidereal_longitude'])
+            if 'sidereal_nakshatra' not in asc:
+                if 'sidereal_longitude' in asc:
+                    asc['sidereal_nakshatra'] = AstroMath.get_nakshatra(asc['sidereal_longitude'])
+                elif 'tropical_longitude' in asc:
+                    # Calculate ayanamsa offset from planets if available
+                    offset = 0.0
+                    for p in self.chart.get('planets', []):
+                        if 'tropical_longitude' in p and 'sidereal_longitude' in p:
+                            offset = (p['tropical_longitude'] - p['sidereal_longitude']) % 360
+                            break
+                    sid_lon = (asc['tropical_longitude'] - offset) % 360
+                    asc['sidereal_longitude'] = round(sid_lon, 4)
+                    asc['sidereal_sign'] = AstroMath.get_zodiac(sid_lon)
+                    asc['sidereal_degree_in_house'] = round(sid_lon % 30, 4)
+                    asc['sidereal_nakshatra'] = AstroMath.get_nakshatra(sid_lon)
             if 'tropical_degree_in_house' not in asc and 'tropical_longitude' in asc:
                 asc['tropical_degree_in_house'] = round(asc['tropical_longitude'] % 30, 4)
         self.mode = settings.get('report_mode', 'Everything')
-        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = AstroMath.is_sidereal_mode(self.mode)
 
         sun_lon = None
         for p in self.chart.get('planets', []):
@@ -1422,13 +1514,12 @@ class HTMLReporter:
             b = self.subject.get('birth_data', {})
             if b.get('date') and b.get('time') and b.get('timezone'):
                 try:
-                    swe.set_ephe_path(str(Path(__file__).resolve().parent / 'ephe'))
                     y, m, d = [int(x) for x in b['date'].split('-')]
                     ayanamsa = settings.get('ayanamsa', 36)
                     epoch = AstroTime(y, m, d, b['time'], b['timezone'], sid_mode=ayanamsa)
                     temp_chart = ChartFactory.create_chart(epoch, mode=self.mode)
                     for p_name, p_obj in temp_chart.items():
-                        speeds[p_name] = getattr(p_obj, 'sidereal_speed', 0.0) if is_sid else getattr(p_obj, 'tropical_speed', 0.0)
+                        speeds[p_name] = p_obj.get_speed(is_sid)
                 except Exception:
                     pass
 
@@ -1453,7 +1544,7 @@ class HTMLReporter:
                     if p_lon is not None:
                         diff = abs(p_lon - sun_lon) % 360
                         diff = min(diff, 360.0 - diff)
-                        if diff <= 8.0:
+                        if diff <= AstroMath.COMBUSTION_ORB:
                             is_c = True
                 p['is_combust'] = is_c
 
@@ -1469,7 +1560,7 @@ class HTMLReporter:
         sign_names = ["Pisces", "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius"]
         
         sign_to_planets = {s: [] for s in sign_names}
-        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = AstroMath.is_sidereal_mode(self.mode)
         
         for p in self.chart.get('planets', []):
             sign_name = p.get('tropical_sign') if not is_sid else p.get('sidereal_sign')
@@ -1518,7 +1609,7 @@ class HTMLReporter:
         return svg
 
     def generate_north_chart_svg(self):
-        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = AstroMath.is_sidereal_mode(self.mode)
         asc_sign_name = self.chart.get('ascendant', {}).get('tropical_sign') if not is_sid else self.chart.get('ascendant', {}).get('sidereal_sign')
         
         if asc_sign_name not in AstroMath.ZODIAC_SIGNS:
@@ -1591,8 +1682,7 @@ class HTMLReporter:
         return svg
 
     def generate_sudarshana_chakra_svg(self):
-        import math
-        is_sid = False if self.mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = AstroMath.is_sidereal_mode(self.mode)
         
         # 1. Retrieve the base signs for Udaya (Lagna), Chandra (Moon), and Surya (Sun)
         asc_sign = self.chart.get('ascendant', {}).get('tropical_sign') if not is_sid else self.chart.get('ascendant', {}).get('sidereal_sign')
@@ -1747,7 +1837,6 @@ class HTMLReporter:
             return idx_27 + 1
 
     def generate_kota_chakra_svg(self):
-        import math
         is_sid = False if self.mode == "Tropical Focus" else True
         
         # Find Moon nakshatra index
@@ -1995,7 +2084,7 @@ class HTMLReporter:
         svg += '</svg>'
         return svg
 
-    def compile_report(self, output_path):
+    def compile_report(self, output_path: str | Path | None = None) -> str:
         from jinja2 import Template
         
         friendship_mapping = {
@@ -2023,13 +2112,16 @@ class HTMLReporter:
             today=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             zodiac_signs=AstroMath.ZODIAC_SIGNS,
             classical_planets=["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"],
+            aspecting_planets=["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"],
             friendship_mapping=friendship_mapping,
             planets_by_name=self.chart.get('planets_by_name', {})
         )
         
-        out_p = Path(output_path)
-        out_p.parent.mkdir(parents=True, exist_ok=True)
-        out_p.write_text(rendered_html, encoding='utf-8')
+        if output_path is not None:
+            out_p = Path(output_path)
+            out_p.parent.mkdir(parents=True, exist_ok=True)
+            out_p.write_text(rendered_html, encoding='utf-8')
+        return rendered_html
 
 
 # --- 8. JAIMINI SYSTEM ENGINES ---
@@ -2045,15 +2137,20 @@ class JaiminiEngine:
     ]
 
     @classmethod
-    def get_karakas(cls, chart):
+    def get_karakas(cls, chart, mode="Tropical-Vedic"):
+        is_sid = AstroMath.is_sidereal_mode(mode)
         classical_names = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
         planets_with_degrees = []
         for name in classical_names:
             if name in chart:
                 p = chart[name]
-                # Determine which longitude to use
-                lon = p.sidereal_longitude if hasattr(p, "sidereal_longitude") else p.tropical_longitude
-                deg_in_sign = lon % 30
+                if isinstance(p, dict):
+                    lon = p.get("sidereal_longitude", 0.0) if is_sid else p.get("tropical_longitude", 0.0)
+                elif hasattr(p, "get_longitude"):
+                    lon = p.get_longitude(is_sid)
+                else:
+                    lon = p.sidereal_longitude if is_sid else getattr(p, "tropical_longitude", 0.0)
+                _, deg_in_sign = AstroMath.get_sign_and_degree(lon)
                 planets_with_degrees.append((name, deg_in_sign))
         
         # Sort descending by degree
@@ -2214,8 +2311,7 @@ class AvasthaEngine:
 
     @classmethod
     def calculate_baladi(cls, lon):
-        sign_idx = int(lon // 30) % 12
-        deg_in_sign = lon % 30
+        sign_idx, deg_in_sign = AstroMath.get_sign_and_degree(lon)
         state_idx = min(4, int(deg_in_sign // 6))
         is_odd = (sign_idx % 2 == 0)
         state = cls.BALADI_STATES_ODD[state_idx] if is_odd else cls.BALADI_STATES_EVEN[state_idx]
@@ -2247,7 +2343,7 @@ class AvasthaEngine:
         if planet_name != "Sun" and sun_lon is not None and planet_lon is not None:
             diff = abs(planet_lon - sun_lon) % 360
             diff = min(diff, 360.0 - diff)
-            if diff <= 8.0:
+            if diff <= AstroMath.COMBUSTION_ORB:
                 is_combust = True
 
         if is_combust:
@@ -2272,8 +2368,8 @@ class AvasthaEngine:
     @classmethod
     def calculate_shayanadi(cls, planet_name, planet_lon, lagna_lon=0.0):
         p_idx = cls.PLANET_INDEX.get(planet_name, 1)
-        nak_p = int(planet_lon // (360.0 / 27.0)) + 1
-        nak_l = int(lagna_lon // (360.0 / 27.0)) + 1
+        nak_p = int(((planet_lon % 360.0) * 27.0) / 360.0) % 27 + 1
+        nak_l = int(((lagna_lon % 360.0) * 27.0) / 360.0) % 27 + 1
         val = (p_idx * nak_p * nak_l + 1) % 12
         state = cls.SHAYANADI_STATES[val]
         return {
@@ -2301,12 +2397,10 @@ class AvasthaEngine:
         return {"states": states}
 
     @classmethod
-    def get_planet_avasthas(cls, planet_name, planet_obj, chart, houses_dict, mode="Vedic Focus"):
-        is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
-        lon = planet_obj.sidereal_longitude if is_sid else planet_obj.tropical_longitude
-        house_num = planet_obj.vedic_house if is_sid else planet_obj.tropical_house
-        dignity = planet_obj.dignity
-        
+    def _extract_lagna_longitudes(cls, houses_dict, is_sid: bool) -> tuple[float, float]:
+        """
+        Extracts (lagna_lon, lagna_sid_lon) from houses_dict or local_sky.
+        """
         lagna_lon = 0.0
         if hasattr(houses_dict, "sidereal_ascendant") or hasattr(houses_dict, "tropical_ascendant"):
             lagna_lon = houses_dict.sidereal_ascendant if is_sid else houses_dict.tropical_ascendant
@@ -2319,35 +2413,49 @@ class AvasthaEngine:
         elif isinstance(houses_dict, (list, tuple)) and len(houses_dict) > 0:
             lagna_lon = float(houses_dict[0])
 
-        sun_lon = None
-        if "Sun" in chart:
-            sun_lon = chart["Sun"].sidereal_longitude if is_sid else chart["Sun"].tropical_longitude
+        lagna_sid_lon = getattr(houses_dict, "sidereal_ascendant", lagna_lon)
+        if isinstance(houses_dict, dict) and 1 in houses_dict and isinstance(houses_dict[1], dict):
+            lagna_sid_lon = houses_dict[1].get("sidereal_start", lagna_sid_lon)
+
+        return lagna_lon, lagna_sid_lon
+
+    @classmethod
+    def get_planet_avasthas(cls, planet_name, planet_obj, chart, houses_dict, mode="Vedic Focus"):
+        is_sid = AstroMath.is_sidereal_mode(mode)
+        lon = planet_obj.get_longitude(is_sid)
+        house_num = planet_obj.get_house(is_sid)
+        dignity = planet_obj.dignity
+        
+        lagna_lon, lagna_sid_lon = cls._extract_lagna_longitudes(houses_dict, is_sid)
+        planet_sid_lon = planet_obj.sidereal_longitude
+
+        sun_lon = chart["Sun"].get_longitude(is_sid) if "Sun" in chart else None
 
         conjoined = []
         aspecting = []
         for other_name, other_obj in chart.items():
             if other_name == planet_name:
                 continue
-            o_h = other_obj.vedic_house if is_sid else other_obj.tropical_house
+            o_h = other_obj.get_house(is_sid)
             if o_h and house_num and o_h == house_num:
                 conjoined.append(other_name)
             if o_h and house_num and (house_num - o_h) % 12 == 6:
                 aspecting.append(other_name)
 
-        sign_idx = int(lon // 30) % 12
+        sign_idx, _ = AstroMath.get_sign_and_degree(lon)
         sign_name = AstroMath.ZODIAC_SIGNS[sign_idx]
         sign_lord = ShadbalaEngine.LORDSHIPS.get(sign_name, "")
         friendship_level = "Sama"
         if sign_lord and sign_lord in chart and planet_name in FriendshipEngine.NATURAL:
             h1 = house_num if house_num else 1
-            h2 = chart[sign_lord].vedic_house if is_sid else chart[sign_lord].tropical_house
+            h2 = chart[sign_lord].get_house(is_sid)
             if h2:
                 friendship_level = FriendshipEngine.get_panchadha_relationship(planet_name, sign_lord, h1, h2)
 
         baladi = cls.calculate_baladi(lon)
         jagradadi = cls.calculate_jagradadi(dignity, friendship_level)
         diptadi = cls.calculate_diptadi(planet_name, dignity, friendship_level, sun_lon, lon)
-        shayanadi = cls.calculate_shayanadi(planet_name, lon, lagna_lon)
+        shayanadi = cls.calculate_shayanadi(planet_name, planet_sid_lon, lagna_sid_lon)
         lajjitadi = cls.calculate_lajjitadi(planet_name, house_num, conjoined, aspecting, dignity)
 
         return {
@@ -2372,16 +2480,17 @@ class PlanetarySynthesisEngine:
     }
 
     @classmethod
-    def calculate_synthesis(cls, chart, local_sky, mode):
+    def calculate_synthesis(cls, chart, local_sky, mode, ashtakavarga: dict | None = None):
         """
         Synthesizes Shadbala, Dignity, and Ashtakavarga metrics for all classical planets.
         """
         synthesis_data = {}
         classical_names = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
-        is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = AstroMath.is_sidereal_mode(mode)
 
-        # Extract Ashtakavarga points
-        ashtakavarga = AshtakavargaEngine.calculate_ashtakavarga(chart, local_sky, mode)
+        # Extract Ashtakavarga points (reuse if already computed)
+        if ashtakavarga is None:
+            ashtakavarga = AshtakavargaEngine.calculate_ashtakavarga(chart, local_sky, mode)
         
         for name in classical_names:
             if name not in chart:
@@ -2479,72 +2588,118 @@ class PlanetarySynthesisEngine:
 # --- 11. ASPECT ENGINE ---
 class AspectEngine:
     CLASSICAL_PLANETS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
+    ALL_GRAHAS = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
     
+    PARASHARI_RULES = {
+        "Sun": [(7, "7th House (Universal)")],
+        "Moon": [(7, "7th House (Universal)")],
+        "Mars": [(4, "4th House (Special)"), (7, "7th House (Universal)"), (8, "8th House (Special)")],
+        "Mercury": [(7, "7th House (Universal)")],
+        "Jupiter": [(5, "5th House (Special)"), (7, "7th House (Universal)"), (9, "9th House (Special)")],
+        "Venus": [(7, "7th House (Universal)")],
+        "Saturn": [(3, "3rd House (Special)"), (7, "7th House (Universal)"), (10, "10th House (Special)")],
+        "Rahu": [(5, "5th House (Special)"), (7, "7th House (Universal)"), (9, "9th House (Special)")],
+        "Ketu": [(7, "7th House (Universal)")]
+    }
+
     @classmethod
-    def calculate_aspects(cls, chart, mode):
+    def calculate_aspects(cls, chart, mode, local_sky=None):
         """
-        Calculates Parashari, Jaimini, and Tajika aspects between all classical planets.
+        Calculates Parashari, Jaimini, and Tajika aspects between all classical planets,
+        including Rahu, Ketu, Lagna, and aspected houses/signs.
         """
-        is_sid = False if mode in ["Tropical-Vedic", "Tropical Focus"] else True
+        is_sid = AstroMath.is_sidereal_mode(mode)
         
-        parashari = {p: [] for p in cls.CLASSICAL_PLANETS}
+        parashari = {p: [] for p in cls.ALL_GRAHAS}
+        parashari_houses = {p: [] for p in cls.ALL_GRAHAS}
         jaimini = {p: [] for p in cls.CLASSICAL_PLANETS}
         tajika = {p: [] for p in cls.CLASSICAL_PLANETS}
         
         # Pre-compute positions to avoid redundant calculations
         positions = {}
-        for p in cls.CLASSICAL_PLANETS:
+        for p in cls.ALL_GRAHAS:
             if p not in chart:
                 continue
             obj = chart[p]
-            lon = obj.sidereal_longitude if is_sid else obj.tropical_longitude
-            h = obj.vedic_house if is_sid else obj.tropical_house
-            sign_idx = int(lon // 30) % 12
+            lon = obj.get_longitude(is_sid)
+            h = obj.get_house(is_sid)
+            sign_idx, _ = AstroMath.get_sign_and_degree(lon)
             positions[p] = {
                 "lon": lon,
                 "house": h,
                 "sign_idx": sign_idx,
+                "sign_name": AstroMath.ZODIAC_SIGNS[sign_idx],
                 "sign_type": sign_idx % 3  # 0=Movable, 1=Fixed, 2=Dual
             }
+            
+        # Determine Lagna sign index
+        if local_sky is not None and (hasattr(local_sky, "sidereal_ascendant") or hasattr(local_sky, "tropical_ascendant")):
+            lagna_lon = local_sky.sidereal_ascendant if is_sid else local_sky.tropical_ascendant
+            lagna_sign_idx, _ = AstroMath.get_sign_and_degree(lagna_lon)
+        else:
+            lagna_sign_idx = 0
+            for p_name, pos in positions.items():
+                if pos["house"]:
+                    lagna_sign_idx = (pos["sign_idx"] - (pos["house"] - 1)) % 12
+                    break
+
+        # 1. Parashari aspects (Graha Drishti on Houses and Occupants/Points)
+        for p1 in cls.ALL_GRAHAS:
+            if p1 not in positions or not positions[p1]["house"]:
+                continue
+            h1 = positions[p1]["house"]
+            rules = cls.PARASHARI_RULES.get(p1, [(7, "7th House (Universal)")])
+            
+            for dist, aspect_type in rules:
+                target_house = (h1 + dist - 2) % 12 + 1
+                target_sign = AstroMath.ZODIAC_SIGNS[(lagna_sign_idx + target_house - 1) % 12]
+                occupants = []
+                
+                # Check if target house is Lagna (House 1)
+                if target_house == 1 and p1 != "Lagna":
+                    occupants.append("Lagna")
+                    parashari[p1].append({
+                        "target": "Lagna",
+                        "aspect": aspect_type,
+                        "distance": dist,
+                        "house": target_house,
+                        "sign": target_sign
+                    })
+                    
+                # Check which grahas reside in the target house
+                for p2 in cls.ALL_GRAHAS:
+                    if p1 == p2 or p2 not in positions:
+                        continue
+                    if positions[p2]["house"] == target_house:
+                        occupants.append(p2)
+                        parashari[p1].append({
+                            "target": p2,
+                            "aspect": aspect_type,
+                            "distance": dist,
+                            "house": target_house,
+                            "sign": target_sign
+                        })
+                        
+                parashari_houses[p1].append({
+                    "house": target_house,
+                    "sign": target_sign,
+                    "aspect": aspect_type,
+                    "distance": dist,
+                    "occupants": occupants
+                })
             
         for p1 in cls.CLASSICAL_PLANETS:
             if p1 not in positions:
                 continue
             pos1 = positions[p1]
-            h1, lon1, s1, t1 = pos1["house"], pos1["lon"], pos1["sign_idx"], pos1["sign_type"]
+            lon1, s1, t1 = pos1["lon"], pos1["sign_idx"], pos1["sign_type"]
             
             for p2 in cls.CLASSICAL_PLANETS:
                 if p1 == p2 or p2 not in positions:
                     continue
                 pos2 = positions[p2]
-                h2, lon2, s2, t2 = pos2["house"], pos2["lon"], pos2["sign_idx"], pos2["sign_type"]
+                lon2, s2, t2 = pos2["lon"], pos2["sign_idx"], pos2["sign_type"]
                 
-                # 1. Parashari aspects (Graha Drishti)
-                if h1 and h2:
-                    distance = (h2 - h1) % 12
-                    has_aspect = False
-                    aspect_type = ""
-                    
-                    if distance == 6:
-                        has_aspect = True
-                        aspect_type = "7th House (Universal)"
-                    elif p1 == "Mars" and distance in [3, 7]:
-                        has_aspect = True
-                        aspect_type = f"{distance + 1}th House (Special)"
-                    elif p1 == "Jupiter" and distance in [4, 8]:
-                        has_aspect = True
-                        aspect_type = f"{distance + 1}th House (Special)"
-                    elif p1 == "Saturn" and distance in [2, 9]:
-                        has_aspect = True
-                        aspect_type = f"{distance + 1}th House (Special)"
-                        
-                    if has_aspect:
-                        parashari[p1].append({
-                            "target": p2,
-                            "aspect": aspect_type,
-                            "distance": distance + 1
-                        })
-                        
                 # 2. Jaimini aspects (Rashi Drishti)
                 has_jaimini = False
                 if t1 == 2 and t2 == 2:  # Dual aspects Dual
@@ -2591,6 +2746,7 @@ class AspectEngine:
                         
         return {
             "parashari": parashari,
+            "parashari_houses": parashari_houses,
             "jaimini": jaimini,
             "tajika": tajika
         }
@@ -2700,6 +2856,75 @@ class LLMContextExporter:
 
         return current_dasha, next_antardasha
 
+    def _build_planet_summaries(self, is_sid: bool, asc_sign: str, karaka_map: dict[str, str], sun_lon: float | None) -> list[dict[str, Any]]:
+        ordered_planets = []
+        for p in self.PLANET_ORDER:
+            if p in self.chart:
+                ordered_planets.append((p, self.chart[p]))
+        for p_name, p_obj in self.chart.items():
+            if p_name not in self.PLANET_ORDER:
+                ordered_planets.append((p_name, p_obj))
+
+        summaries = []
+        for p_name, p_obj in ordered_planets:
+            sign = p_obj.sidereal_sign if is_sid else p_obj.zodiac_sign
+            house = p_obj.vedic_house if is_sid else p_obj.tropical_house
+            lon = p_obj.sidereal_longitude if is_sid else p_obj.tropical_longitude
+            deg = round(lon % 30, 1)
+
+            synth = self.planetary_synthesis.get(p_name, {})
+            bala_lvl = synth.get("shadbala", {}).get("level", "")
+            bala_total = p_obj.shadbala.get("shadbala_total") if p_obj.shadbala else None
+
+            avasthas = getattr(p_obj, "avasthas", {}) or synth.get("avasthas", {})
+            compact_avasthas = {}
+            if avasthas:
+                for k in ["baladi", "jagradadi", "diptadi", "lajjitadi"]:
+                    if k in avasthas and "state" in avasthas[k]:
+                        compact_avasthas[k] = avasthas[k]["state"]
+
+            is_retro = (getattr(p_obj, "sidereal_speed", 0.0) < 0) if p_name not in ["Sun", "Moon", "Rahu", "Ketu"] else False
+            is_combust = synth.get("avasthas", {}).get("diptadi", {}).get("is_combust", False)
+            if not is_combust and p_name != "Sun" and sun_lon is not None:
+                diff = abs(lon - sun_lon) % 360
+                diff = min(diff, 360.0 - diff)
+                if diff <= AstroMath.COMBUSTION_ORB:
+                    is_combust = True
+
+            ruled = YogaEngine.get_ruled_houses(p_name, asc_sign)
+            is_yk = any(h in [4, 7, 10] for h in ruled) and any(h in [5, 9] for h in ruled)
+            nak_pada = AstroMath.get_nakshatra_pada(p_obj.sidereal_longitude)
+
+            takeaway = synth.get("takeaway", "")
+            if not takeaway:
+                av_list = [compact_avasthas[k] for k in ["baladi", "jagradadi"] if k in compact_avasthas]
+                takeaway = ", ".join(av_list) if av_list else "-"
+
+            summaries.append({
+                "name": p_name,
+                "planet_obj": p_obj,
+                "sign": sign,
+                "house": house,
+                "placed_in_house": house,
+                "deg": deg,
+                "nakshatra": p_obj.nakshatra,
+                "nakshatra_pada": nak_pada,
+                "dignity": p_obj.dignity,
+                "is_retrograde": is_retro,
+                "is_combust": is_combust,
+                "ruled_houses": ruled,
+                "rules_houses": ruled,
+                "is_yogakaraka": is_yk,
+                "power_level": bala_lvl,
+                "bala_total": bala_total,
+                "d9": p_obj.vargas.get("D9", "-"),
+                "d10": p_obj.vargas.get("D10", "-"),
+                "karaka": karaka_map.get(p_name, None),
+                "takeaway": takeaway,
+                "compact_avasthas": compact_avasthas
+            })
+        return summaries
+
     def generate_markdown(self) -> str:
         name = self.subject.get("name", "Unknown Subject")
         birth = self.subject.get("birth_data", {})
@@ -2707,10 +2932,10 @@ class LLMContextExporter:
         time_str = birth.get("time", "")
         tz_str = birth.get("timezone", "")
 
-        is_sid = self.report_mode not in ["Tropical-Vedic", "Tropical Focus"]
+        is_sid = AstroMath.is_sidereal_mode(self.report_mode)
         asc_sign = self.local_sky.sidereal_ascendant_sign if is_sid else self.local_sky.tropical_ascendant_sign
         asc_lon = self.local_sky.sidereal_ascendant if is_sid else self.local_sky.tropical_ascendant
-        asc_deg = round(AstroMath.get_degree_in_house(asc_lon, 1, self.local_sky.houses, is_sid), 1)
+        asc_deg = round(asc_lon % 30, 1)
         asc_sid_lon = self.local_sky.sidereal_ascendant
         asc_nak = AstroMath.get_nakshatra(asc_sid_lon)
         asc_pada = AstroMath.get_nakshatra_pada(asc_sid_lon)
@@ -2779,87 +3004,45 @@ class LLMContextExporter:
         )
 
         # 2. Planetary Rows in canonical Navagraha order
-        ordered_planets = []
-        for p in self.PLANET_ORDER:
-            if p in self.chart:
-                ordered_planets.append((p, self.chart[p]))
-        for p_name, p_obj in self.chart.items():
-            if p_name not in self.PLANET_ORDER:
-                ordered_planets.append((p_name, p_obj))
+        planet_summaries = self._build_planet_summaries(is_sid, asc_sign, karaka_map, sun_lon)
+        for s in planet_summaries:
+            p_name = s["name"]
+            power_str = f"{s['power_level']} ({round(s['bala_total'], 1)})" if s["bala_total"] is not None else "N/A"
+            varga_str = f"{s['d9']} / {s['d10']}" if s['d10'] != "-" else s['d9']
+            karaka_val = s['karaka'] or "-"
 
-        for p_name, p_obj in ordered_planets:
-            sign = p_obj.sidereal_sign if is_sid else p_obj.zodiac_sign
-            house = p_obj.vedic_house if is_sid else p_obj.tropical_house
-            lon = p_obj.sidereal_longitude if is_sid else p_obj.tropical_longitude
-            deg = round(AstroMath.get_degree_in_house(lon, house, self.local_sky.houses, is_sid), 1)
-
-            synth = self.planetary_synthesis.get(p_name, {})
-            bala_lvl = synth.get("shadbala", {}).get("level", "")
-            bala_total = p_obj.shadbala.get("shadbala_total") if p_obj.shadbala else None
-            power_str = f"{bala_lvl} ({round(bala_total, 1)})" if bala_total is not None else "N/A"
-
-            d9_val = p_obj.vargas.get("D9", "-")
-            d10_val = p_obj.vargas.get("D10", "-")
-            varga_str = f"{d9_val} / {d10_val}" if d10_val != "-" else d9_val
-
-            karaka_val = karaka_map.get(p_name, "-")
-
-            # Retrograde & Combustion markers
-            is_retro = (getattr(p_obj, "sidereal_speed", 0.0) < 0) if p_name not in ["Sun", "Moon", "Rahu", "Ketu"] else False
-            is_combust = synth.get("avasthas", {}).get("diptadi", {}).get("is_combust", False)
-            if not is_combust and p_name != "Sun" and sun_lon is not None:
-                diff = abs(lon - sun_lon) % 360
-                diff = min(diff, 360.0 - diff)
-                if diff <= 8.0:
-                    is_combust = True
-
-            dignity_parts = [p_obj.dignity]
-            if is_retro:
+            dignity_parts = [s['dignity']]
+            if s['is_retrograde']:
                 dignity_parts.append("(R)")
-            if is_combust:
+            if s['is_combust']:
                 dignity_parts.append("(C)")
             dignity_str = " ".join(dignity_parts)
 
-            # Explicit Placed In and Rules (Lord of)
-            placed_str = f"House {house}"
-            ruled = YogaEngine.get_ruled_houses(p_name, asc_sign)
-            is_yk = any(h in [4, 7, 10] for h in ruled) and any(h in [5, 9] for h in ruled)
+            placed_str = f"House {s['house']}"
+            ruled = s['ruled_houses']
             if ruled:
                 houses_text = ", ".join(f"House {h}" for h in ruled)
                 rule_annotations = []
-                if house in ruled:
+                if s['house'] in ruled:
                     rule_annotations.append("Own House")
-                if is_yk:
+                if s['is_yogakaraka']:
                     rule_annotations.append("Yogakaraka")
                 rules_str = f"{houses_text} ({', '.join(rule_annotations)})" if rule_annotations else houses_text
             else:
                 rules_str = "None (Node)" if p_name in ["Rahu", "Ketu"] else "None"
 
-            # Nakshatra with Pada
-            nak_pada = AstroMath.get_nakshatra_pada(p_obj.sidereal_longitude)
-            nak_str = f"{p_obj.nakshatra} (P{nak_pada})"
-
-            # Synthesis Takeaway
-            takeaway = synth.get("takeaway", "")
-            if not takeaway:
-                avasthas = getattr(p_obj, "avasthas", {}) or synth.get("avasthas", {})
-                av_list = []
-                if avasthas:
-                    if "baladi" in avasthas and "state" in avasthas["baladi"]:
-                        av_list.append(avasthas["baladi"]["state"])
-                    if "jagradadi" in avasthas and "state" in avasthas["jagradadi"]:
-                        av_list.append(avasthas["jagradadi"]["state"])
-                takeaway = ", ".join(av_list) if av_list else "-"
+            nak_str = f"{s['nakshatra']} (P{s['nakshatra_pada']})"
+            takeaway_str = s['takeaway'] or "-"
 
             markers = []
-            if is_retro:
+            if s['is_retrograde']:
                 markers.append("(R)")
-            if is_combust:
+            if s['is_combust']:
                 markers.append("(C)")
             p_display = f"{p_name} {' '.join(markers)}".strip()
 
             md_lines.append(
-                f"| {p_display} | {sign} | {placed_str} | {rules_str} | {deg}° | {nak_str} | {dignity_str} | {power_str} | {varga_str} | {karaka_val} | {takeaway} |"
+                f"| {p_display} | {s['sign']} | {placed_str} | {rules_str} | {s['deg']}° | {nak_str} | {dignity_str} | {power_str} | {varga_str} | {karaka_val} | {takeaway_str} |"
             )
 
         # Active Yogas with Traditional Interpretive Results (Deduplicated)
@@ -2911,11 +3094,16 @@ class LLMContextExporter:
         for p1, targets in self.planetary_aspects.get("parashari", {}).items():
             if not targets:
                 continue
-            t_names = [t.get("target") for t in targets if t.get("target")]
-            raw_asp = targets[0].get("aspect", "").replace(" (Special)", "").replace(" (Universal)", "").strip()
-            asp_name = raw_asp.replace("3th", "3rd").replace("2th", "2nd").replace("1th", "1st")
-            if t_names:
-                parashari_items.append(f"{p1} aspects {', '.join(t_names)} ({asp_name})")
+            aspect_groups = {}
+            for t in targets:
+                t_name = t.get("target")
+                if not t_name:
+                    continue
+                raw_asp = t.get("aspect", "").replace(" (Special)", "").replace(" (Universal)", "").strip()
+                asp_clean = raw_asp.replace("3th", "3rd").replace("2th", "2nd").replace("1th", "1st")
+                aspect_groups.setdefault(asp_clean, []).append(t_name)
+            for asp_clean, names in aspect_groups.items():
+                parashari_items.append(f"{p1} aspects {', '.join(names)} ({asp_clean})")
 
         transits_summary_items = []
         for p, d in self.transits.items():
@@ -2946,10 +3134,10 @@ class LLMContextExporter:
     def generate_lean_json(self) -> dict:
         name = self.subject.get("name", "Unknown Subject")
         birth = self.subject.get("birth_data", {})
-        is_sid = self.report_mode not in ["Tropical-Vedic", "Tropical Focus"]
+        is_sid = AstroMath.is_sidereal_mode(self.report_mode)
         asc_sign = self.local_sky.sidereal_ascendant_sign if is_sid else self.local_sky.tropical_ascendant_sign
         asc_lon = self.local_sky.sidereal_ascendant if is_sid else self.local_sky.tropical_ascendant
-        asc_deg = round(AstroMath.get_degree_in_house(asc_lon, 1, self.local_sky.houses, is_sid), 1)
+        asc_deg = round(asc_lon % 30, 1)
         asc_sid_lon = self.local_sky.sidereal_ascendant
         asc_nak = AstroMath.get_nakshatra(asc_sid_lon)
         asc_pada = AstroMath.get_nakshatra_pada(asc_sid_lon)
@@ -2967,66 +3155,30 @@ class LLMContextExporter:
             sun_obj = self.chart["Sun"]
             sun_lon = sun_obj.sidereal_longitude if is_sid else sun_obj.tropical_longitude
 
+        planet_summaries = self._build_planet_summaries(is_sid, asc_sign, karaka_map, sun_lon)
         compact_planets = {}
-        ordered_planets = []
-        for p in self.PLANET_ORDER:
-            if p in self.chart:
-                ordered_planets.append((p, self.chart[p]))
-        for p_name, p_obj in self.chart.items():
-            if p_name not in self.PLANET_ORDER:
-                ordered_planets.append((p_name, p_obj))
-
-        for p_name, p_obj in ordered_planets:
-            sign = p_obj.sidereal_sign if is_sid else p_obj.zodiac_sign
-            house = p_obj.vedic_house if is_sid else p_obj.tropical_house
-            lon = p_obj.sidereal_longitude if is_sid else p_obj.tropical_longitude
-            deg = round(AstroMath.get_degree_in_house(lon, house, self.local_sky.houses, is_sid), 1)
-
-            synth = self.planetary_synthesis.get(p_name, {})
-            bala_lvl = synth.get("shadbala", {}).get("level", "")
-            bala_total = p_obj.shadbala.get("shadbala_total") if p_obj.shadbala else None
-
-            avasthas = getattr(p_obj, "avasthas", {})
-            if not avasthas:
-                avasthas = synth.get("avasthas", {})
-            compact_avasthas = {}
-            if avasthas:
-                for k in ["baladi", "jagradadi", "diptadi", "lajjitadi"]:
-                    if k in avasthas and "state" in avasthas[k]:
-                        compact_avasthas[k] = avasthas[k]["state"]
-
-            is_retro = (getattr(p_obj, "sidereal_speed", 0.0) < 0) if p_name not in ["Sun", "Moon", "Rahu", "Ketu"] else False
-            is_combust = synth.get("avasthas", {}).get("diptadi", {}).get("is_combust", False)
-            if not is_combust and p_name != "Sun" and sun_lon is not None:
-                diff = abs(lon - sun_lon) % 360
-                diff = min(diff, 360.0 - diff)
-                if diff <= 8.0:
-                    is_combust = True
-
-            ruled = YogaEngine.get_ruled_houses(p_name, asc_sign)
-            is_yk = any(h in [4, 7, 10] for h in ruled) and any(h in [5, 9] for h in ruled)
-            nak_pada = AstroMath.get_nakshatra_pada(p_obj.sidereal_longitude)
-
+        for s in planet_summaries:
+            p_name = s["name"]
             compact_planets[p_name] = {
-                "sign": sign,
-                "house": house,
-                "placed_in_house": house,
-                "deg": deg,
-                "nakshatra": p_obj.nakshatra,
-                "nakshatra_pada": nak_pada,
-                "dignity": p_obj.dignity,
-                "is_retrograde": is_retro,
-                "is_combust": is_combust,
-                "ruled_houses": ruled,
-                "rules_houses": ruled,
-                "is_yogakaraka": is_yk,
-                "power": bala_lvl if bala_lvl else "N/A",
-                "bala": round(bala_total, 1) if bala_total is not None else None,
-                "d9": p_obj.vargas.get("D9", "-"),
-                "d10": p_obj.vargas.get("D10", "-"),
-                "karaka": karaka_map.get(p_name, None),
-                "takeaway": synth.get("takeaway", None),
-                "avasthas": compact_avasthas or None
+                "sign": s["sign"],
+                "house": s["house"],
+                "placed_in_house": s["house"],
+                "deg": s["deg"],
+                "nakshatra": s["nakshatra"],
+                "nakshatra_pada": s["nakshatra_pada"],
+                "dignity": s["dignity"],
+                "is_retrograde": s["is_retrograde"],
+                "is_combust": s["is_combust"],
+                "ruled_houses": s["ruled_houses"],
+                "rules_houses": s["rules_houses"],
+                "is_yogakaraka": s["is_yogakaraka"],
+                "power": s["power_level"] if s["power_level"] else "N/A",
+                "bala": round(s["bala_total"], 1) if s["bala_total"] is not None else None,
+                "d9": s["d9"],
+                "d10": s["d10"],
+                "karaka": s["karaka"],
+                "takeaway": s["takeaway"] if s["takeaway"] != "-" else None,
+                "avasthas": s["compact_avasthas"] or None
             }
 
         compact_yogas = []
@@ -3070,11 +3222,16 @@ class LLMContextExporter:
         for p1, targets in self.planetary_aspects.get("parashari", {}).items():
             if not targets:
                 continue
-            t_names = [t.get("target") for t in targets if t.get("target")]
-            raw_asp = targets[0].get("aspect", "").replace(" (Special)", "").replace(" (Universal)", "").strip()
-            asp_name = raw_asp.replace("3th", "3rd").replace("2th", "2nd").replace("1th", "1st")
-            if t_names:
-                parashari_items.append(f"{p1} aspects {', '.join(t_names)} ({asp_name})")
+            aspect_groups = {}
+            for t in targets:
+                t_name = t.get("target")
+                if not t_name:
+                    continue
+                raw_asp = t.get("aspect", "").replace(" (Special)", "").replace(" (Universal)", "").strip()
+                asp_clean = raw_asp.replace("3th", "3rd").replace("2th", "2nd").replace("1th", "1st")
+                aspect_groups.setdefault(asp_clean, []).append(t_name)
+            for asp_clean, names in aspect_groups.items():
+                parashari_items.append(f"{p1} aspects {', '.join(names)} ({asp_clean})")
 
         compact_transits = {}
         for p, d in self.transits.items():
@@ -3129,6 +3286,329 @@ class LLMContextExporter:
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text(json.dumps(content, indent=2, ensure_ascii=False), encoding="utf-8")
         return content
+
+
+# --- 12. UNIFIED CHART PIPELINE & ORCHESTRATION API ---
+
+@dataclass
+class ChartResult:
+    """
+    Structured outcome of a complete astrological chart calculation.
+    Supports attribute access, dict export, artifact compilation, and tuple unpacking.
+    """
+    chart: dict[str, Planet]
+    local_sky: HouseEngine
+    epoch_time: AstroTime
+    planets_data: list[dict[str, Any]]
+    ascendant_data: dict[str, Any]
+    houses_data: dict[str, Any]
+    ashtakavarga: dict[str, Any]
+    yogas: dict[str, Any]
+    jaimini_karakas: dict[str, Any]
+    panchanga: dict[str, Any]
+    planetary_synthesis: dict[str, Any]
+    planetary_aspects: dict[str, Any]
+    planetary_friendships: dict[str, Any]
+    vimshottari_dasha: list[dict[str, Any]]
+    transits: dict[str, Any] | None = None
+    mode: str = "Tropical-Vedic"
+    house_system: str | int = "W"
+    ayanamsa: str | int = 36
+    subject: dict[str, Any] = field(default_factory=dict)
+
+    def __iter__(self):
+        """Allows unpacking as (chart, local_sky, yogas, ashtakavarga, jaimini, panchanga, synthesis, aspects)."""
+        yield self.chart
+        yield self.local_sky
+        yield self.yogas
+        yield self.ashtakavarga
+        yield self.jaimini_karakas
+        yield self.panchanga
+        yield self.planetary_synthesis
+        yield self.planetary_aspects
+
+    def to_profile_dict(
+        self,
+        metadata: dict[str, Any] | None = None,
+        subject: dict[str, Any] | None = None,
+        fingerprint: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Assembles and returns the full JSON-serializable profile dictionary."""
+        subj = subject if subject is not None else self.subject
+        meta = metadata if metadata is not None else {
+            "engine": "AstrologyEngine v2.0 (Swiss Ephemeris Native)",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "settings": {
+                "report_mode": self.mode,
+                "house_system": self.house_system,
+                "ayanamsa": self.ayanamsa
+            }
+        }
+        json_chart_data = {
+            "ascendant": self.ascendant_data,
+            "planets": self.planets_data,
+            "houses": self.houses_data,
+            "ashtakavarga": self.ashtakavarga,
+            "yogas": self.yogas,
+            "transits": self.transits or {},
+            "vimshottari_dasha": self.vimshottari_dasha,
+            "jaimini_karakas": self.jaimini_karakas,
+            "panchanga": self.panchanga,
+            "planetary_synthesis": self.planetary_synthesis,
+            "planetary_aspects": self.planetary_aspects
+        }
+        profile = {
+            "metadata": meta,
+            "subject": subj,
+            "astrological_chart": json_chart_data,
+            "planetary_friendships": self.planetary_friendships
+        }
+        if fingerprint:
+            profile["fingerprint"] = fingerprint
+        return profile
+
+    def export_all(
+        self,
+        output_dir: str | Path,
+        filename_prefix: str,
+        template_path: str | Path | None = None,
+        metadata: dict[str, Any] | None = None,
+        fingerprint: dict[str, Any] | None = None
+    ) -> dict[str, Path]:
+        """
+        Exports all artifacts (JSON profile, SLM markdown context, lean JSON, and HTML report)
+        into output_dir. Returns a dict mapping artifact name to its Path.
+        """
+        out_dir = Path(output_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        json_path = out_dir / f"{filename_prefix}_astrology_profile.json"
+        profile_data = self.to_profile_dict(metadata=metadata, fingerprint=fingerprint)
+        json_path.write_text(json.dumps(profile_data, indent=4, ensure_ascii=False), encoding="utf-8")
+
+        llm_exporter = LLMContextExporter(
+            subject_profile=self.subject,
+            chart=self.chart,
+            local_sky=self.local_sky,
+            report_mode=self.mode,
+            yogas=self.yogas,
+            dasha_periods=self.vimshottari_dasha,
+            transits=self.transits or {},
+            panchanga=self.panchanga,
+            ashtakavarga=self.ashtakavarga,
+            jaimini_karakas=self.jaimini_karakas,
+            planetary_synthesis=self.planetary_synthesis,
+            planetary_aspects=self.planetary_aspects
+        )
+        md_path = out_dir / f"{filename_prefix}_llm_context.md"
+        llm_exporter.export_markdown(md_path)
+
+        lean_json_path = out_dir / f"{filename_prefix}_llm_payload.json"
+        llm_exporter.export_lean_json(lean_json_path)
+
+        html_path = out_dir / f"{filename_prefix}_report.html"
+        tpl_path = Path(template_path) if template_path else Path("report_template.html").resolve()
+        if tpl_path.exists():
+            reporter = HTMLReporter(profile_data, tpl_path)
+            reporter.compile_report(html_path)
+
+        return {
+            "json": json_path,
+            "markdown": md_path,
+            "lean_json": lean_json_path,
+            "html": html_path
+        }
+
+
+class AstrologyPipeline:
+    """
+    Unified high-level orchestrator that executes the complete birth chart calculation pipeline.
+    """
+
+    @classmethod
+    def calculate(
+        cls,
+        year: int,
+        month: int,
+        day: int,
+        hour: float | str,
+        tz: float | str,
+        lat: float,
+        lon: float,
+        mode: str = "Tropical-Vedic",
+        house_system: str | int = "W",
+        ayanamsa: str | int = 36,
+        yogas_rules_path: str | Path | None = None,
+        subject: dict[str, Any] | None = None,
+        transit_time: AstroTime | None = None,
+        compute_transits: bool = True
+    ) -> ChartResult:
+        # 1. Ephemeris & House calculation
+        epoch_time = AstroTime(year, month, day, hour, tz, sid_mode=ayanamsa)
+        local_sky = HouseEngine(epoch_time, lat, lon, house_system=house_system)
+        chart = ChartFactory.create_chart(epoch_time, mode=mode)
+
+        # 2. Cache house placements
+        for obj in chart.values():
+            obj.tropical_house = AstroMath.get_house_placement(obj.tropical_longitude, local_sky.houses, False)
+            obj.vedic_house = AstroMath.get_house_placement(obj.sidereal_longitude, local_sky.houses, True)
+
+        # 3. Shadbala & Avasthas
+        is_sid = AstroMath.is_sidereal_mode(mode)
+        for name, obj in chart.items():
+            h_num = obj.vedic_house if is_sid else obj.tropical_house
+            obj.shadbala = ShadbalaEngine.get_complete_shadbala(name, obj, chart, local_sky.houses, h_num, mode)
+            obj.avasthas = AvasthaEngine.get_planet_avasthas(name, obj, chart, local_sky, mode)
+
+        # 4. Formulate planets payload array
+        planets_data = []
+        for name, obj in chart.items():
+            is_retro = (getattr(obj, "sidereal_speed", 0.0) < 0) if name not in ["Sun", "Moon", "Rahu", "Ketu"] else False
+            is_combust = getattr(obj, "avasthas", {}).get("diptadi", {}).get("is_combust", False)
+            if mode == "Tropical-Vedic":
+                planets_data.append({
+                    "name": name,
+                    "tropical_sign": obj.zodiac_sign,
+                    "tropical_house": obj.tropical_house,
+                    "tropical_degree_in_house": round(AstroMath.get_degree_in_house(obj.tropical_longitude, obj.tropical_house, local_sky.houses, False), 4),
+                    "vargas": obj.vargas,
+                    "dignity": obj.dignity,
+                    "shadbala": obj.shadbala,
+                    "avasthas": getattr(obj, "avasthas", {}),
+                    "sidereal_nakshatra": obj.nakshatra,
+                    "sidereal_longitude": round(obj.sidereal_longitude, 4),
+                    "tropical_longitude": round(obj.tropical_longitude, 4),
+                    "is_retrograde": is_retro,
+                    "is_combust": is_combust
+                })
+            else:
+                planets_data.append({
+                    "name": name,
+                    "tropical_sign": obj.zodiac_sign,
+                    "tropical_house": obj.tropical_house,
+                    "tropical_degree_in_house": round(AstroMath.get_degree_in_house(obj.tropical_longitude, obj.tropical_house, local_sky.houses, False), 4),
+                    "vargas": obj.vargas,
+                    "sidereal_nakshatra": obj.nakshatra,
+                    "sidereal_sign": obj.sidereal_sign,
+                    "vedic_house": obj.vedic_house,
+                    "vedic_degree_in_house": round(AstroMath.get_degree_in_house(obj.sidereal_longitude, obj.vedic_house, local_sky.houses, True), 4),
+                    "dignity": obj.dignity,
+                    "tropical_dignity": obj.tropical_dignity,
+                    "sidereal_dignity": obj.sidereal_dignity,
+                    "shadbala": obj.shadbala,
+                    "avasthas": getattr(obj, "avasthas", {}),
+                    "sidereal_longitude": round(obj.sidereal_longitude, 4),
+                    "tropical_longitude": round(obj.tropical_longitude, 4),
+                    "is_retrograde": is_retro,
+                    "is_combust": is_combust
+                })
+
+        # 5. Formulate ascendant and houses payload
+        asc_deg_trop = round(AstroMath.get_degree_in_house(local_sky.tropical_ascendant, 1, local_sky.houses, False), 4)
+        asc_deg_sid = round(AstroMath.get_degree_in_house(local_sky.sidereal_ascendant, 1, local_sky.houses, True), 4)
+        if mode == "Tropical-Vedic":
+            ascendant_data = {
+                "tropical_sign": local_sky.tropical_ascendant_sign,
+                "tropical_longitude": round(local_sky.tropical_ascendant, 4),
+                "tropical_degree_in_house": asc_deg_trop,
+                "sidereal_sign": local_sky.sidereal_ascendant_sign,
+                "sidereal_longitude": round(local_sky.sidereal_ascendant, 4),
+                "sidereal_degree_in_house": asc_deg_sid,
+                "sidereal_nakshatra": AstroMath.get_nakshatra(local_sky.sidereal_ascendant),
+                "nakshatra_pada": AstroMath.get_nakshatra_pada(local_sky.sidereal_ascendant)
+            }
+            houses_data = {
+                str(h): {"tropical_start": local_sky.houses[h]["tropical_start"]}
+                for h in local_sky.houses
+            }
+        else:
+            ascendant_data = {
+                "tropical_sign": local_sky.tropical_ascendant_sign,
+                "tropical_longitude": round(local_sky.tropical_ascendant, 4),
+                "tropical_degree_in_house": asc_deg_trop,
+                "sidereal_sign": local_sky.sidereal_ascendant_sign,
+                "sidereal_longitude": round(local_sky.sidereal_ascendant, 4),
+                "sidereal_degree_in_house": asc_deg_sid,
+                "sidereal_nakshatra": AstroMath.get_nakshatra(local_sky.sidereal_ascendant),
+                "nakshatra_pada": AstroMath.get_nakshatra_pada(local_sky.sidereal_ascendant)
+            }
+            houses_data = {str(h): local_sky.houses[h] for h in local_sky.houses}
+
+        # 6. Ashtakavarga
+        ashtakavarga = AshtakavargaEngine.calculate_ashtakavarga(chart, local_sky, mode)
+
+        # 7. Yogas & Subject metadata
+        subject_info = copy.deepcopy(subject) if subject else {"name": "Subject", "gender": "Unknown"}
+        if "birth_data" not in subject_info:
+            hour_str = f"{int(hour):02d}:{int(round((hour % 1) * 60)):02d}" if isinstance(hour, (int, float)) else str(hour)
+            subject_info["birth_data"] = {
+                "date": f"{year:04d}-{month:02d}-{day:02d}",
+                "time": hour_str,
+                "timezone": str(tz),
+                "latitude": lat,
+                "longitude": lon
+            }
+        rules_path = Path(yogas_rules_path) if yogas_rules_path else Path("yogas").resolve()
+        if not rules_path.exists():
+            alt_path = Path(__file__).resolve().parent / "yogas"
+            if alt_path.exists():
+                rules_path = alt_path
+        yogas = YogaEngine.scan_yogas(chart, local_sky, mode, rules_path, subject_info)
+
+        # 8. Jaimini Karakas, Panchanga, Synthesis, Aspects
+        jaimini_karakas = JaiminiEngine.get_karakas(chart, mode=mode)
+        panchanga = PanchangaEngine.calculate_panchanga(epoch_time, chart, lat, lon)
+        planetary_synthesis = PlanetarySynthesisEngine.calculate_synthesis(chart, local_sky, mode, ashtakavarga=ashtakavarga)
+        planetary_aspects = AspectEngine.calculate_aspects(chart, mode, local_sky=local_sky)
+
+        # 9. Planetary Compound Friendships
+        planetary_friendships = {}
+        classical = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"]
+        for p1 in classical:
+            planetary_friendships[p1] = {}
+            for p2 in classical:
+                if p1 == p2:
+                    continue
+                h1 = chart[p1].vedic_house if is_sid else chart[p1].tropical_house
+                h2 = chart[p2].vedic_house if is_sid else chart[p2].tropical_house
+                planetary_friendships[p1][p2] = FriendshipEngine.get_panchadha_relationship(p1, p2, h1, h2)
+
+        # 10. Vimshottari Dasha
+        moon_nak = chart["Moon"].nakshatra
+        moon_sid_lon = chart["Moon"].sidereal_longitude
+        vimshottari_dasha = VimshottariDashaEngine(epoch_time, moon_nak, moon_sid_lon).dasha_periods
+
+        # 11. Transits
+        transits = None
+        if compute_transits:
+            if transit_time is None:
+                now_utc = datetime.now(timezone.utc)
+                dec_hour = now_utc.hour + now_utc.minute / 60.0 + now_utc.second / 3600.0
+                transit_time = AstroTime(now_utc.year, now_utc.month, now_utc.day, dec_hour, 0.0, sid_mode=ayanamsa)
+            transit_chart = ChartFactory.create_chart(transit_time, mode=mode)
+            transits = GocharaEngine.evaluate_transits(chart, transit_chart, mode)
+
+        return ChartResult(
+            chart=chart,
+            local_sky=local_sky,
+            epoch_time=epoch_time,
+            planets_data=planets_data,
+            ascendant_data=ascendant_data,
+            houses_data=houses_data,
+            ashtakavarga=ashtakavarga,
+            yogas=yogas,
+            jaimini_karakas=jaimini_karakas,
+            panchanga=panchanga,
+            planetary_synthesis=planetary_synthesis,
+            planetary_aspects=planetary_aspects,
+            planetary_friendships=planetary_friendships,
+            vimshottari_dasha=vimshottari_dasha,
+            transits=transits,
+            mode=mode,
+            house_system=house_system,
+            ayanamsa=ayanamsa,
+            subject=subject_info
+        )
 
 
 

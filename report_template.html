@@ -456,9 +456,10 @@
                     <div class="table-responsive">
                         <table>
                             <thead>
+                                {% set is_sid = false if mode in ["Tropical-Vedic", "Tropical Focus"] else true %}
                                 <tr>
                                     <th scope="col">Planet / Point</th>
-                                    <th scope="col">Sign (Tropical)</th>
+                                    <th scope="col">Sign ({{ 'Sidereal' if is_sid else 'Tropical' }})</th>
                                     <th scope="col">House</th>
                                     <th scope="col">Degree</th>
                                     <th scope="col">Dignity</th>
@@ -468,26 +469,31 @@
                             </thead>
                             <tbody>
                                 {% if chart.ascendant %}
+                                {% set asc_sign = chart.ascendant.sidereal_sign if is_sid and chart.ascendant.sidereal_sign else chart.ascendant.tropical_sign %}
+                                {% set asc_deg = chart.ascendant.sidereal_degree_in_house if is_sid and chart.ascendant.sidereal_degree_in_house else chart.ascendant.tropical_degree_in_house %}
                                 <tr>
                                     <th scope="row">Ascendant (Lagna)</th>
-                                    <td>{{ chart.ascendant.tropical_sign | default('-') }}</td>
+                                    <td>{{ asc_sign | default('-') }}</td>
                                     <td>1</td>
-                                    <td>{{ chart.ascendant.tropical_degree_in_house | default('-') }}°</td>
+                                    <td>{{ asc_deg | default('-') }}°</td>
                                     <td>-</td>
                                     <td>-</td>
                                     <td>{{ chart.ascendant.sidereal_nakshatra | default('-') }}</td>
                                 </tr>
                                 {% endif %}
                                 {% for p in chart.planets %}
+                                {% set p_sign = p.sidereal_sign if is_sid and p.sidereal_sign else p.tropical_sign %}
+                                {% set p_house = p.vedic_house if is_sid and p.vedic_house else p.tropical_house %}
+                                {% set p_deg = p.vedic_degree_in_house if is_sid and p.vedic_degree_in_house else p.tropical_degree_in_house %}
                                 <tr>
                                     <th scope="row">
                                         <strong>{{ p.name }}</strong>
                                         {% if p.is_retrograde %}<span style="display: inline-block; margin-left: 0.35rem; padding: 0.1rem 0.4rem; font-size: 0.75rem; font-weight: 700; border-radius: 4px; background: rgba(243, 198, 63, 0.15); color: var(--gold); border: 1px solid var(--gold);" title="Retrograde">R</span>{% endif %}
                                         {% if p.is_combust %}<span style="display: inline-block; margin-left: 0.35rem; padding: 0.1rem 0.4rem; font-size: 0.75rem; font-weight: 700; border-radius: 4px; background: rgba(231, 76, 60, 0.15); color: var(--red); border: 1px solid var(--red);" title="Combust">C</span>{% endif %}
                                     </th>
-                                    <td>{{ p.tropical_sign | default('-') }}</td>
-                                    <td>{{ p.tropical_house | default('-') }}</td>
-                                    <td>{{ p.tropical_degree_in_house | default('-') }}°</td>
+                                    <td>{{ p_sign | default('-') }}</td>
+                                    <td>{{ p_house | default('-') }}</td>
+                                    <td>{{ p_deg | default('-') }}°</td>
                                     <td>
                                         {{ p.dignity | default('-') }}
                                         {% if p.is_retrograde %}<span style="color: var(--gold); font-size: 0.85rem; font-weight: 600;">(R)</span>{% endif %}
@@ -710,32 +716,60 @@
                     <!-- Sub-Tab: Parashari -->
                     <div id="sub-aspects-parashari" class="sub-aspect-content" role="tabpanel" aria-labelledby="btn-sub-parashari">
                         <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem; font-style: italic;">
-                            Graha Drishti: Planets aspect entire houses based on their position. All planets aspect the 7th house from themselves. Mars (4th/8th), Jupiter (5th/9th), and Saturn (3rd/10th) have special aspects.
+                            Graha Drishti: Planets aspect entire houses and signs based on their placement, influencing both the house affairs and any planets residing within. All planets aspect the 7th house (Universal). Mars (4th/8th), Jupiter (5th/9th), and Saturn (3rd/10th) cast full special aspects.
                         </p>
                         <div class="table-responsive">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th scope="col" style="width: 25%;">Aspecting Planet</th>
-                                        <th scope="col">Aspected Planet & Specific Aspect</th>
+                                        <th scope="col" style="width: 22%;">Aspecting Planet</th>
+                                        <th scope="col" style="width: 38%;">Aspected Houses & Signs</th>
+                                        <th scope="col" style="width: 40%;">Points & Grahas Aspected</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for p in classical_planets %}
-                                        {% set asp_list = chart.planetary_aspects.parashari.get(p, []) %}
+                                    {% set is_sid = false if mode in ["Tropical-Vedic", "Tropical Focus"] else true %}
+                                    {% for p in (aspecting_planets if aspecting_planets else classical_planets) %}
+                                        {% set h_list = chart.planetary_aspects.parashari_houses.get(p, []) if chart.planetary_aspects and chart.planetary_aspects.parashari_houses else [] %}
+                                        {% set asp_list = chart.planetary_aspects.parashari.get(p, []) if chart.planetary_aspects and chart.planetary_aspects.parashari else [] %}
                                         <tr>
-                                            <th scope="row"><strong>{{ p }}</strong></th>
+                                            <th scope="row">
+                                                <strong>{{ p }}</strong>
+                                                {% set p_info = (planets_by_name.get(p) if planets_by_name else none) or (chart.planets_by_name.get(p) if chart.planets_by_name else none) %}
+                                                {% if p_info %}
+                                                    {% set p_h = p_info.vedic_house if is_sid and p_info.vedic_house else p_info.tropical_house %}
+                                                    {% set p_s = p_info.sidereal_sign if is_sid and p_info.sidereal_sign else p_info.tropical_sign %}
+                                                    <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: normal; margin-top: 0.2rem;">
+                                                        House {{ p_h | default('-') }} ({{ p_s | default('-') }})
+                                                    </div>
+                                                {% endif %}
+                                            </th>
+                                            <td>
+                                                {% if h_list %}
+                                                    <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                                                        {% for h in h_list %}
+                                                            <div style="font-size: 0.85rem;">
+                                                                <span style="font-weight: 600; color: var(--gold);">House {{ h.house }} ({{ h.sign }})</span>
+                                                                <span style="color: var(--text-muted); font-size: 0.8rem;">— {{ h.aspect }}</span>
+                                                            </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                {% else %}
+                                                    <span style="color: var(--text-muted); font-style: italic;">No aspected houses</span>
+                                                {% endif %}
+                                            </td>
                                             <td>
                                                 {% if asp_list %}
                                                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                                                         {% for a in asp_list %}
-                                                            <span style="background-color: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+                                                            {% set badge_style = "background-color: rgba(0, 242, 254, 0.1); border: 1px solid #00f2fe; color: #00f2fe;" if a.target == "Lagna" else "background-color: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color);" %}
+                                                            <span style="{{ badge_style }} padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.9rem;">
                                                                 <strong>{{ a.target }}</strong> ({{ a.aspect }})
                                                             </span>
                                                         {% endfor %}
                                                     </div>
                                                 {% else %}
-                                                    <span style="color: var(--text-muted); font-style: italic;">No aspected planets</span>
+                                                    <span style="color: var(--text-muted); font-style: italic;">Unoccupied (aspects empty houses)</span>
                                                 {% endif %}
                                             </td>
                                         </tr>
