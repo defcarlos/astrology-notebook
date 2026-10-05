@@ -399,8 +399,15 @@ class TestAstrologyEngine(unittest.TestCase):
             }
         }
         transits = {
-            "Jupiter": {"transit_sign": "Taurus", "house_from_moon": 2, "is_auspicious": True},
-            "Saturn": {"transit_sign": "Aquarius", "house_from_moon": 11, "is_auspicious": True}
+            "Sun": {"transit_sign": "Libra", "house_from_moon": 7, "is_auspicious": False},
+            "Moon": {"transit_sign": "Gemini", "house_from_moon": 3, "is_auspicious": True},
+            "Mars": {"transit_sign": "Leo", "house_from_moon": 5, "is_auspicious": False},
+            "Mercury": {"transit_sign": "Scorpio", "house_from_moon": 8, "is_auspicious": True},
+            "Jupiter": {"transit_sign": "Leo", "house_from_moon": 5, "is_auspicious": True},
+            "Venus": {"transit_sign": "Scorpio", "house_from_moon": 8, "is_auspicious": True},
+            "Saturn": {"transit_sign": "Aries", "house_from_moon": 1, "is_auspicious": False},
+            "Rahu": {"transit_sign": "Aquarius", "house_from_moon": 11, "is_auspicious": True},
+            "Ketu": {"transit_sign": "Leo", "house_from_moon": 5, "is_auspicious": False}
         }
 
         exporter = LLMContextExporter(
@@ -434,6 +441,10 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertIn("SAV Bindus", md)
         self.assertIn("D9 / D10", md)
         self.assertIn("Atmakaraka", md)
+        # Verify all transit planets including Saturn, Rahu, and Ketu are not truncated
+        self.assertIn("Saturn: Aries (H1)", md)
+        self.assertIn("Rahu: Aquarius (H11*)", md)
+        self.assertIn("Ketu: Leo (H5)", md)
 
         # 2. Verify lean JSON generation
         lean = exporter.generate_lean_json()
