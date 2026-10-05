@@ -2908,7 +2908,7 @@ class LLMContextExporter:
             "\n### Key Aspects & Transits",
             f"- **Parashari Drishti:** {', '.join(parashari_items) if parashari_items else 'None prominent'}",
             f"- **Tajika Aspects:** {', '.join(aspect_list[:8]) if aspect_list else 'None prominent'}",
-            f"- **Transits from Moon (*=Auspicious):** {' | '.join(transits_summary_items[:6]) if transits_summary_items else 'None'}",
+            f"- **Transits from Moon (*=Auspicious):** {' | '.join(transits_summary_items) if transits_summary_items else 'None'}",
             f"- **SAV Bindus (Houses 1-12):** {sav_summary}"
         ])
 
