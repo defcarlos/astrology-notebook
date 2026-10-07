@@ -152,17 +152,9 @@ Go to the **Sudarshana Chakra** tab. This concentric 3-wheel chart aligns three 
 
 ---
 
-## 🗺️ Future Roadmap
+## 🗺️ Roadmap & Planned Fixes
 
-The following classical Vedic **Avastha Systems** are scheduled for implementation into the calculation pipeline, HTML report dashboard, and LLM payload exporter:
+See **[ROADMAP.md](ROADMAP.md)** for our active backlog, scheduled fixes, and completed milestones:
 
-1. **Bālādi Avasthas (Age & Degree Potency)**
-   * Computes planetary maturity (*Bāla*, *Kumāra*, *Yuvā*, *Vṛddha*, *Mṛta*) based on sign parity and longitude degrees.
-2. **Jāgradādi Avasthas (Alertness & Consciousness)**
-   * Evaluates planetary consciousness (*Jāgraṭa* - Awake, *Swapna* - Dreaming, *Suṣupti* - Sleeping) based on dignity and friendship status.
-3. **Dīptādi Avasthas (10 Luminosity & Emotional Dignity States)**
-   * Assesses qualitative expression across 10 states (*Dīpta*, *Svastha*, *Mudita*, *Shānta*, *Dīna*, *Dukhita*, *Vikala*, *Khala*, *Kopa*, *Dapti*).
-4. **Shayanādi Avasthas (12 Activity & Behavioral States)**
-   * Calculates Parashari behavioral states (*Śayana*, *Upaveśana*, *Netrapāṇi*, *Prakāśana*, *Gamana*, *Āgamana*, *Sabhā*, *Āgama*, *Bhojana*, *Nṛtyalipsā*, *Kautuka*, *Nidrā*) using Nakshatra index formulas.
-5. **Lajjitādi Avasthas (6 Emotional/Psychological Conditions)**
-   * Evaluates planetary mood and affliction (*Lajjita*, *Garvita*, *Kṣubhita*, *Kṣudhita*, *Tṛṣita*, *Mudita*) based on 5th house placements, nodal conjunctions, and malefic aspects.
+* **Classical Yoga Deduplication & Parity Harmonization** *(Scheduled)*: Harmonize active yoga evaluation between the HTML dashboard and LLM context exporters to eliminate duplicate generic clone cards.
+* **Implemented Avastha Systems**: Full calculations for Bālādi, Jāgradādi, Dīptādi, Shayanādi, and Lajjitādi Avasthas are live in the engine and rendered across all HTML dashboards and LLM payloads.

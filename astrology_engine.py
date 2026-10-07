@@ -2877,11 +2877,47 @@ class LLMContextExporter:
             bala_total = p_obj.shadbala.get("shadbala_total") if p_obj.shadbala else None
 
             avasthas = getattr(p_obj, "avasthas", {}) or synth.get("avasthas", {})
+            if not avasthas:
+                try:
+                    avasthas = AvasthaEngine.get_planet_avasthas(p_name, p_obj, self.chart, self.local_sky, self.report_mode)
+                except Exception:
+                    avasthas = {}
+
             compact_avasthas = {}
             if avasthas:
-                for k in ["baladi", "jagradadi", "diptadi", "lajjitadi"]:
+                for k in ["baladi", "jagradadi", "diptadi"]:
                     if k in avasthas and "state" in avasthas[k]:
                         compact_avasthas[k] = avasthas[k]["state"]
+                if "lajjitadi" in avasthas and "states" in avasthas["lajjitadi"]:
+                    compact_avasthas["lajjitadi"] = ", ".join(avasthas["lajjitadi"]["states"])
+
+            # Formatted displays for Avasthas & Ashtakavarga table
+            baladi_info = avasthas.get("baladi", {})
+            baladi_state = baladi_info.get("state", "-")
+            baladi_pot = baladi_info.get("potency", "")
+            baladi_display = f"{baladi_state} ({baladi_pot.split()[0]})" if baladi_pot else baladi_state
+
+            jagradadi_info = avasthas.get("jagradadi", {})
+            jagradadi_state = jagradadi_info.get("state", "-")
+            jagradadi_pct_map = {"Jāgraṭa": "100%", "Swapna": "50%", "Suṣupti": "0%"}
+            jagradadi_pct = jagradadi_pct_map.get(jagradadi_state, "")
+            jagradadi_display = f"{jagradadi_state} ({jagradadi_pct})" if jagradadi_pct else jagradadi_state
+
+            lajjitadi_info = avasthas.get("lajjitadi", {})
+            lajjitadi_states = lajjitadi_info.get("states", ["Sama (Balanced)"])
+            lajjitadi_display = ", ".join(lajjitadi_states) if lajjitadi_states else "Sama (Balanced)"
+
+            # Ashtakavarga Bindus
+            bav_bindus = None
+            if p_name not in ["Rahu", "Ketu"]:
+                if synth.get("ashtakavarga", {}).get("bindus") is not None:
+                    bav_bindus = synth["ashtakavarga"]["bindus"]
+                elif "bav" in self.ashtakavarga and p_name in self.ashtakavarga["bav"]:
+                    sign_idx, _ = AstroMath.get_sign_and_degree(lon)
+                    bav_bindus = self.ashtakavarga["bav"][p_name][sign_idx]
+
+            sav_list = self.ashtakavarga.get("sav", [])
+            sav_bindus = sav_list[house - 1] if (house and 1 <= house <= len(sav_list)) else None
 
             is_retro = (getattr(p_obj, "sidereal_speed", 0.0) < 0) if p_name not in ["Sun", "Moon", "Rahu", "Ketu"] else False
             is_combust = synth.get("avasthas", {}).get("diptadi", {}).get("is_combust", False)
@@ -2921,7 +2957,12 @@ class LLMContextExporter:
                 "d10": p_obj.vargas.get("D10", "-"),
                 "karaka": karaka_map.get(p_name, None),
                 "takeaway": takeaway,
-                "compact_avasthas": compact_avasthas
+                "compact_avasthas": compact_avasthas,
+                "baladi_display": baladi_display,
+                "jagradadi_display": jagradadi_display,
+                "lajjitadi_display": lajjitadi_display,
+                "bav_bindus": bav_bindus,
+                "sav_bindus": sav_bindus
             })
         return summaries
 
@@ -3043,6 +3084,35 @@ class LLMContextExporter:
 
             md_lines.append(
                 f"| {p_display} | {s['sign']} | {placed_str} | {rules_str} | {s['deg']}° | {nak_str} | {dignity_str} | {power_str} | {varga_str} | {karaka_val} | {takeaway_str} |"
+            )
+
+        # 3. Dedicated Planetary States & Ashtakavarga Matrix
+        md_lines.extend([
+            "\n### Planetary States & Ashtakavarga (Avasthas & Bindus)",
+            "> **AI Interpretation Guide:**",
+            "> - **Bālādi Avastha (Physical Age & Potency):** Degree-based kinetic capacity: Bāla (25%), Kumāra (50%), Yuvā (100%), Vṛddha (10%), Mṛta (0%).",
+            "> - **Jāgratādi Avastha (Alertness):** Consciousness level: Jāgraṭa (Awake, 100%), Swapna (Dreaming, 50%), Suṣupti (Sleeping, 0%).",
+            "> - **Lajjitādi Avastha (Mood/Condition):** Emotional disposition (Proud, Delighted, Agitated, Hungry, Embarrassed, Balanced).",
+            "> - **BAV (Bhinna Ashtakavarga):** Benefic dots (0–8) in current sign (≥5 High Support, 4 Neutral, ≤3 Low Support).",
+            "> - **SAV (Sarva Ashtakavarga):** Total house bindus (>28 Strong, 25–28 Neutral, <25 Weak).",
+            "\n| Planet | Bālādi (Age/Capacity) | Jāgratādi (Alertness) | Lajjitādi (State) | BAV (Planet Bindus) | SAV (House Bindus) |",
+            "|:---|:---|:---|:---|:---|:---|"
+        ])
+
+        for s in planet_summaries:
+            p_name = s["name"]
+            markers = []
+            if s['is_retrograde']:
+                markers.append("(R)")
+            if s['is_combust']:
+                markers.append("(C)")
+            p_display = f"{p_name} {' '.join(markers)}".strip()
+
+            bav_str = f"{s['bav_bindus']} / 8" if s['bav_bindus'] is not None else "N/A"
+            sav_str = f"{s['sav_bindus']} (H{s['house']})" if s['sav_bindus'] is not None and s['house'] else "-"
+
+            md_lines.append(
+                f"| {p_display} | {s['baladi_display']} | {s['jagradadi_display']} | {s['lajjitadi_display']} | {bav_str} | {sav_str} |"
             )
 
         # Active Yogas with Traditional Interpretive Results (Deduplicated)
@@ -3178,7 +3248,12 @@ class LLMContextExporter:
                 "d10": s["d10"],
                 "karaka": s["karaka"],
                 "takeaway": s["takeaway"] if s["takeaway"] != "-" else None,
-                "avasthas": s["compact_avasthas"] or None
+                "avasthas": s["compact_avasthas"] or None,
+                "ashtakavarga": {
+                    "bav": s["bav_bindus"],
+                    "sav_house": s["sav_bindus"],
+                    "house": s["house"]
+                }
             }
 
         compact_yogas = []
