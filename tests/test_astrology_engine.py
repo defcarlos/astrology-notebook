@@ -413,10 +413,20 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertIn("SAV Bindus", md)
         self.assertIn("D9 / D10", md)
         self.assertIn("Atmakaraka", md)
-        # Verify Ascendant is in table and follows canonical Navagraha order
-        table_rows = [line.split("|")[1].strip().split()[0] for line in md.splitlines() if line.startswith("|") and not line.startswith("| Planet") and not line.startswith("|:---")]
+        self.assertIn("Planetary States & Ashtakavarga (Avasthas & Bindus)", md)
+        self.assertIn("BAV (Planet Bindus)", md)
+        self.assertIn("SAV (House Bindus)", md)
+        # Verify Ascendant is in first table and follows canonical Navagraha order
+        pos_section = md.split("### Planetary States & Ashtakavarga")[0]
+        pos_table_rows = [line.split("|")[1].strip().split()[0] for line in pos_section.splitlines() if line.startswith("|") and not line.startswith("| Planet") and not line.startswith("|:---")]
         expected_order = ["Ascendant", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
-        self.assertEqual(table_rows, expected_order)
+        self.assertEqual(pos_table_rows, expected_order)
+
+        # Verify second table contains all 9 Grahas in canonical order
+        states_section = md.split("### Planetary States & Ashtakavarga")[1].split("### Active Classical Yogas")[0]
+        states_table_rows = [line.split("|")[1].strip().split()[0] for line in states_section.splitlines() if line.startswith("|") and not line.startswith("| Planet") and not line.startswith("|:---")]
+        expected_grahas = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]
+        self.assertEqual(states_table_rows, expected_grahas)
         # Verify all transit planets including Saturn, Rahu, and Ketu are not truncated
         self.assertIn("Saturn: Aries (H1)", md)
         self.assertIn("Rahu: Aquarius (H11*)", md)
@@ -436,6 +446,10 @@ class TestAstrologyEngine(unittest.TestCase):
         self.assertIn("ruled_houses", lean["planets"]["Sun"])
         self.assertIn("Darakaraka", lean["planets"]["Sun"]["karaka"])
         self.assertIn("Atmakaraka", lean["planets"]["Mars"]["karaka"])
+        self.assertIn("ashtakavarga", lean["planets"]["Sun"])
+        self.assertIn("bav", lean["planets"]["Sun"]["ashtakavarga"])
+        self.assertIn("sav_house", lean["planets"]["Sun"]["ashtakavarga"])
+        self.assertIn("avasthas", lean["planets"]["Sun"])
         self.assertTrue(len(lean["active_yogas"]) > 0)
         # Verify that yoga results are present in JSON
         first_yoga = lean["active_yogas"][0]
