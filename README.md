@@ -1,160 +1,253 @@
 # Universal Astrological OKF Engine
 
-A comprehensive Python-based astrological calculation engine that translates classic Vedic configurations into algorithmically computable rules. This project uses the Swiss Ephemeris (`pysweph`) to generate birth charts, divisional harmonics, planetary strengths, Ashtakavarga grids, and Vimshottari dasha cycles, outputting premium interactive dashboards and LLM-friendly payloads.
+A comprehensive Python-based astrological calculation engine and AI interpretation ecosystem that translates classical Vedic, Jaimini, Tajika, and Hellenistic configurations into algorithmically computable rules. Built on the Swiss Ephemeris (`pysweph`), the engine generates full birth charts, 16 divisional harmonics (*Shodashavarga*), 6-fold planetary strengths (*Shadbala*), 5-fold planetary psychological states (*Avasthas*), *Ashtakavarga* grids, and *Vimshottari Dasha* timelines—exporting interactive HTML dashboards alongside token-optimized Markdown and JSON payloads for LLMs.
 
 ---
 
 ## 🌟 Key Features
 
-* **Comprehensive Yoga Engine**: Evaluates charts against a library of **81 unique Vedic yogas** across 9 category-specific JSON rule files.
-* **Interactive Dashboard Report**: Compiles a rich, responsive HTML dashboard complete with South and North Indian style chart SVGs, planet/house details, Ashtakavarga grids, nested dasha timelines, and transits.
-* **Interactive Filtering**: The dashboard includes an interactive toggle switch to view **Active Yogas Only** (default) or all checked combinations.
-* **LLM-Optimized Payload Exporter**: Automatically outputs a secondary compact payload (`_llm_payload.json`) tailored for small local models (like Gemma 2 9B or Llama 3 8B). This file is trimmed from 270 KB to **~18 KB (~3,500 tokens)** by keeping only active yogas and current dasha chains, while preserving rich planetary sub-balas.
+* **Modular Python Engine (`astrology_engine.py`)**: Thread-safe `AstrologyPipeline` orchestrating 11 calculation stages into a unified `ChartResult` dataclass that can be run from Jupyter or imported directly into Python scripts.
+* **Comprehensive Yoga Engine**: Evaluates charts against a library of **81 unique Vedic yogas** across 9 category-specific JSON rule files in `yogas/`.
+* **5-Fold Planetary Avastha System**: Computes *Bālādi* (age/maturity), *Jāgratādi* (alertness), *Dīptādi* (luminosity/dignity), *Lajjitādi* (relational/psychological state: *Garvita, Mudita, Lajjita, Kṣubhita, Kṣudhita, Sama*), and *Shayanādi* (posture + *Crowned/Supported/Penalty* modifiers), complete with psychological synthesis flags (`High Drive / Lacks Resources`).
+* **Interactive HTML Dashboard**: Compiles a self-contained, responsive HTML report (`<name>_report.html`) featuring South and North Indian chart SVGs, *Sudarshana Chakra*, *Shadbala* breakdowns, *Panchadha Maitri* friendship matrices, *Ashtakavarga* grids, nested *Vimshottari Dasha* trees, and *Gochara* transits.
+* **Dual LLM Context Exporters**:
+  * **SLM/LLM Markdown Context (`<name>_llm_context.md`, ~7 KB / ~1,800 tokens)**: Pre-synthesized, token-efficient Markdown telemetry containing core placements, lordships, 5-fold Avasthas, Jaimini Chara Karakas, active Yogas, high/low SAV houses, and active Dasha/Transit windows.
+  * **Lean JSON Payload (`<name>_llm_payload.json`, ~13–18 KB)**: Trimmed from ~315 KB to ~3,500 tokens by retaining active yogas and current dasha chains while preserving sub-bala telemetry.
+* **Astrology Knowledge Base & Agent Skills (`astrology_kb/`)**: Includes **22 domain reference cards** and two production LLM skills (`astrology-writer` and `astrology-report-gatekeeper`) with one-command deployment to **Hermes Agent** via `scripts/sync_hermes.py`.
 
 ---
 
 ## 📁 Directory Structure
 
-* **`astrology.ipynb`**: The main Jupyter Notebook calculation pipeline.
-* **`report_template.html`**: The responsive styling template for generating HTML dashboards.
-* **`yogas/`**: Directory containing 81 rule definitions categorized in JSON files:
-  * `01_pancha_mahapurusha_yogas.json` (Mars, Mercury, Jupiter, Venus, Saturn kendra dignities)
-  * `02_nabhasa_yogas.json` (Akriti, Asraya, Dala, Sankhya shape-based yogas)
-  * `03_solar_yogas.json` (Vesi, Vasi, and Ubhayachari solar combinations)
-  * `04_lunar_yogas.json` (Sunapha, Anapha, Durudhara, Gajakesari lunar combinations)
-  * `05_lagna_yogas.json` (Lagna house strengths and alignments)
-  * `06_dispositor_yogas.json` (Dispositor placements and Neechabhanga cancels)
-  * `07_deity_avatar_yogas.json` (Srinatha, Brahma, Indra alignments)
-  * `08_raja_and_dhana_yogas.json` (Wealth and royalty indicators, including gender-specific Maha Bhagya Yogas)
-  * `09_miscellaneous_core_yogas.json` (Parivartana / sign exchange yogas)
+```text
+astrology-notebook-master/
+├── astrology_engine.py          # Core modular calculation engine & exporters (AstrologyPipeline)
+├── astrology.ipynb              # Interactive Jupyter Notebook pipeline & configuration UI
+├── report_template.html         # Jinja2 responsive HTML/CSS/JS dashboard template
+├── ROADMAP.md                   # Active backlog, architectural milestones, and planned fixes
+├── yogas/                       # 81 classical yoga definitions across 9 JSON rule files
+│   ├── 01_pancha_mahapurusha_yogas.json
+│   ├── 02_nabhasa_yogas.json
+│   ├── 03_solar_yogas.json
+│   ├── 04_lunar_yogas.json
+│   ├── 05_lagna_yogas.json
+│   ├── 06_dispositor_yogas.json
+│   ├── 07_deity_avatar_yogas.json
+│   ├── 08_raja_and_dhana_yogas.json
+│   └── 09_miscellaneous_core_yogas.json
+├── astrology_kb/                # Curated Astrological Knowledge Base & LLM Agent Skills
+│   ├── index.md                 # Master router & taxonomy for the knowledge base
+│   ├── core_elements/           # Planets, 5-fold Avasthas, 12 Bhavas, 12 Rashis, 27 Nakshatras, 16 Vargas
+│   ├── combinations_and_rules/  # Core Yogas, 300 Important Combinations, Ashtakavarga
+│   ├── predictive_timing/       # Vimshottari Dasha, Gochara Transits, Tajaka Varshaphala
+│   ├── systems/                 # Jaimini Sutras, Parashari vs. Jaimini, Prasna, Hellenistic, BaZi
+│   ├── astrology-writer/        # Skill: 7-step narrative chart synthesis & 4-pillar Q&A protocol
+│   └── astrology-report-gatekeeper/ # Skill: 10-point QA audit & verification checklist supervisor
+├── scripts/
+│   └── sync_hermes.py           # Synchronizes KB reference cards & deploys skills to Hermes Agent
+├── tests/
+│   └── test_astrology_engine.py # Automated validation suite against AA-rated Astro-Databank charts
+├── ephe/                        # Swiss Ephemeris data files (auto-downloaded on first run)
+└── profiles/                    # Generated chart outputs (<name>/<name>_*) — gitignored
+```
 
 ---
 
 ## 🚀 How to Run
 
 ### Prerequisites
-Ensure you have Python 3 and the required libraries installed:
+Install Python 3 and the required dependencies:
 ```bash
 pip install pysweph pyyaml requests tzdata jinja2 python-dateutil geopy
 ```
 
-### Steps
-1. Open the project in Jupyter Lab, Jupyter Notebook, or VS Code:
+### Option A: Jupyter Notebook (`astrology.ipynb`)
+1. Open the notebook in Jupyter Lab, Jupyter Notebook, or VS Code:
    ```bash
    jupyter notebook astrology.ipynb
    ```
-2. Go to **Cell 10** (`⚙️ Birth Data Configuration`) and input your birth details:
-   * `SUBJECT_NAME`: Name of the subject (e.g. `"Steve Jobs"`)
-   * `B_YEAR`, `B_MONTH`, `B_DAY`: Birth date coordinates
-   * `B_TIME`: Birth time (24-hour format)
-   * `B_TZ`: Local timezone database name (e.g., `"America/Los_Angeles"`)
-   * `LATITUDE`, `LONGITUDE`: Decimal coordinates of birth place
-   * `GENDER`: Gender input (`"Male"` or `"Female"`)
+2. Go to **Cell 10** (`⚙️ Birth Data Configuration`) and configure the subject's parameters:
+   * `SUBJECT_NAME`: Name of the subject (e.g., `"Steve Jobs"`)
+   * `B_YEAR`, `B_MONTH`, `B_DAY`: Birth date
+   * `B_TIME`: Birth time in 24-hour `"HH:MM"` format
+   * `B_TZ`: IANA timezone string (e.g., `"America/Los_Angeles"`)
+   * `GENDER`: `"Male"` or `"Female"`
+   * `BIRTH_PLACE` & `AUTO_GEOLOCATE`: City/state string with automatic Nominatim coordinate lookup (falls back to manual `LATITUDE` and `LONGITUDE` if `False`)
+   * `REPORT_MODE`: Coordinate & synthesis mode (`"Tropical-Vedic"`, `"Vedic Focus"`, `"Tropical Focus"`, or `"Everything"`)
+   * `HOUSE_SYSTEM`: `"W"` (Whole Sign), `"P"` (Placidus), or `"E"` (Equal)
+   * `AYANAMSA`: `36` (Galactic Center at 0° Mula / Wilhelm), `1` (Lahiri), `3` (Raman), or `5` (KP)
 3. Run all cells in the notebook.
-4. **View Outputs**:
-   * Stored structured full calculations: `profiles/<name>/<name>_astrology_profile.json`
-   * Stored compact LLM payload: `profiles/<name>/<name>_llm_payload.json`
-   * Stored interactive HTML report: `profiles/<name>/<name>_report.html`
-   * Bundled production archive: `C:\Users\carlo\Documents\astrology-notebook\<name>_astrology_profile_final.zip`
+
+### Option B: Programmatic Python API (`astrology_engine.py`)
+You can generate all chart artifacts directly from Python without launching Jupyter:
+
+```python
+from pathlib import Path
+from astrology_engine import AstrologyPipeline
+
+subject_profile = {
+    "name": "Steve Jobs",
+    "gender": "Male",
+    "birth_data": {
+        "date": "1955-02-24",
+        "time": "19:15",
+        "timezone": "America/Los_Angeles",
+        "latitude": 37.7749,
+        "longitude": -122.4194,
+    },
+}
+
+chart_result = AstrologyPipeline.calculate(
+    year=1955, month=2, day=24, hour="19:15", tz="America/Los_Angeles",
+    lat=37.7749, lon=-122.4194, mode="Tropical-Vedic",
+    house_system="W", ayanamsa=36,
+    yogas_rules_path=Path("yogas").resolve(),
+    subject=subject_profile,
+    compute_transits=True,
+)
+
+artifacts = chart_result.export_all(
+    output_dir=Path("profiles/steve_jobs"),
+    filename_prefix="steve_jobs",
+    template_path=Path("report_template.html").resolve(),
+)
+```
+
+### Generated Output Files
+Every run writes four synchronized files into `profiles/<safe_name>/`:
+1. `profiles/<name>/<name>_report.html`: Interactive visual HTML dashboard.
+2. `profiles/<name>/<name>_llm_context.md`: Token-optimized Markdown synthesis designed specifically for LLM reading generation and Q&A.
+3. `profiles/<name>/<name>_llm_payload.json`: Compact JSON payload (~3,500 tokens) for programmatic/SLM pipelines.
+4. `profiles/<name>/<name>_astrology_profile.json`: Complete raw calculation archive (~315 KB).
+
+---
+
+## 🧠 Knowledge Base & LLM Agent Skills (`astrology_kb/`)
+
+The `astrology_kb/` directory bridges deterministic astronomical telemetry with qualitative astrological interpretation. It consists of **22 structured reference cards** and **two specialized skills**:
+
+### 1. `astrology-writer` ([`astrology_kb/astrology-writer/SKILL.md`](astrology_kb/astrology-writer/SKILL.md))
+Transforms `<name>_llm_context.md` into an empowering, nuanced astrological reading without exposing raw mathematical jargon:
+* **Full Initial Readings**: Follows a 7-step interpretive protocol and outputs a 6-part narrative structure (*Core Architecture, Dynamic Life-Force & Avasthas, Yogas & Karmic Blueprint, Current Timing & Transits, Actionable Synthesis*).
+* **Strict Telemetry Ban**: Automatically translates raw degrees, Shadbala rupas, and SAV bindu counts into qualitative psychological and life-domain prose.
+* **4-Pillar Topic Synthesis Rule (Follow-Up Q&A)**: Whenever answering a question about a specific person or life domain (e.g., marriage, career, father, wealth, siblings), the skill synthesizes all 4 pillars before answering:
+  1. **Primary House(s) (*Bhava*)**: Occupants, aspects, and environmental SAV support (including dual-house rules such as **both the 9th and 10th houses for the Father**).
+  2. **House Lord(s) (*Bhavesha*)**: Sign dignity, house placement (*Lordship Transfer*: `Lord of [Source] in [Destination]`), and Avastha state.
+  3. **Natural Significator (*Naisargika Karaka*)**: Condition of the natural planetary significator (e.g., Sun for father, Moon for mother, Venus for spouse, Jupiter for wealth/children).
+  4. **Jaimini Significator (*Chara Karaka*)**: Condition and placement of the degree-based Jaimini Karaka (`AK`, `AmK`, `BK`, `MK`, `PiK`, `PK`, `GK`, `DK`).
+
+### 2. `astrology-report-gatekeeper` ([`astrology_kb/astrology-report-gatekeeper/SKILL.md`](astrology_kb/astrology-report-gatekeeper/SKILL.md))
+Acts as a 10-point quality-assurance supervisor over generated readings:
+* Verifies 100% factual alignment against `<name>_llm_context.md` (Ascendant, placements, lordships, active Yogas, and Dasha/Transit dates).
+* Audits Avastha psychological synthesis (e.g., ensuring `High Drive / Lacks Resources` planets are framed as inner friction requiring pacing rather than effortless triumph).
+* Enforces the telemetry ban and 4-Pillar Topic Synthesis completeness, appending a **Verification Checklist Badge** once all 10 checks pass.
+
+### Syncing Skills to Hermes Agent (`scripts/sync_hermes.py`)
+If you use **Hermes Agent**, run the synchronization script whenever you edit a knowledge base card or skill file:
+
+```bash
+python3 scripts/sync_hermes.py
+```
+
+This script:
+1. Updates local relative symlinks inside `astrology_kb/astrology-writer/references/` and `astrology_kb/astrology-report-gatekeeper/references/`.
+2. Rewrites links for flat reference resolution and copies physical reference files into `~/.hermes/skills/astrology/` and all active Hermes profile skill directories (such as `~/.hermes/profiles/astro-gatekeeper/skills/astrology/`).
+3. Runs a runtime verification check against Hermes's `skill_view` loader.
+
+#### Using the `astro-gatekeeper` Bot in Hermes
+With the unified `astro-gatekeeper` profile, you only need to provide the path to a generated `<name>_llm_context.md` file:
+* **Initial Reading + Audit**: Provide `@profiles/<name>/<name>_llm_context.md` and ask for a reading—the bot automatically drafts the 6-part reading, runs the 10-point QA gatekeeper audit, and outputs the verified report.
+* **Follow-Up Questions**: Ask any life-topic question in the same session (e.g., *"What does the chart indicate about my relationship with my father?"* or *"How should I navigate my current Mahadasha?"*) and the bot will answer using the 4-Pillar Topic Synthesis protocol.
 
 ---
 
 ## 🧪 Testing & Validation
 
-To ensure astronomical and logic calculation accuracy, the project includes a validation suite in the [tests/test_astrology_engine.py](file:///C:/Users/carlo/Documents/astrology-notebook/tests/test_astrology_engine.py) file. This suite calculates and asserts the charts of verified historical figures (all rated AA by Astro-Databank) in both `Tropical-Vedic` and `Sidereal-Vedic` modes:
+To guarantee astronomical and rule-evaluation accuracy, the project includes an automated test suite in [`tests/test_astrology_engine.py`](tests/test_astrology_engine.py). It validates charts of historical figures (rated AA by Astro-Databank) across both `Tropical-Vedic` and `Sidereal` modes:
 
-* **Steve Jobs**: Validates tropical Ascendant (Virgo), Sun/Moon placements, and active yogas (such as Gajakesari and Amala).
-* **Albert Einstein**: Validates sidereal Ascendant (Gemini), exalted Venus (Pisces), and active yogas (such as Malavya and Amala).
-* **Barack Obama**: Validates sidereal Ascendant (Capricorn), Saturn in Capricorn/1st house, and the active *Sasa Yoga* (Pancha Mahapurusha).
-* **Mahatma Gandhi**: Validates sidereal Ascendant (Libra), Moon in Leo, and active yogas (such as Malavya and Gajakesari).
+* **Steve Jobs**: Validates tropical Ascendant (Virgo), Sun/Moon placements, and active yogas (*Gajakesari*, *Amala*).
+* **Albert Einstein**: Validates sidereal Ascendant (Gemini), exalted Venus (Pisces), and active yogas (*Malavya*, *Amala*).
+* **Barack Obama**: Validates sidereal Ascendant (Capricorn), Saturn in Capricorn/1st house, and active *Sasa Yoga* (*Pancha Mahapurusha*).
+* **Mahatma Gandhi**: Validates sidereal Ascendant (Libra), Moon in Leo, and active yogas (*Malavya*, *Gajakesari*).
 
-### How to Run Tests
-
-You can execute the test suite directly from your terminal:
-
+Run the test suite from your terminal:
 ```bash
-python tests/test_astrology_engine.py
+python3 tests/test_astrology_engine.py
 ```
 
 ---
 
 ## 📖 Tajika Prasna Guide (Horary Astrology)
 
-Prasna is the art of answering specific queries based on the moment and location a question is posed. Tajika astrology's degree-based aspects are the primary foundation for Prasna.
+Prasna is the art of answering specific queries based on the exact moment and location a question is posed. Tajika astrology's degree-based aspects are a primary foundation for Prasna.
 
 ### How to Cast a Prasna Chart
-1. Update `B_YEAR`, `B_MONTH`, `B_DAY`, and `B_TIME` in the notebook inputs to the **exact moment** the question is asked.
-2. Update `LATITUDE` and `LONGITUDE` to the location of the asker (the querent).
+1. Update `B_YEAR`, `B_MONTH`, `B_DAY`, and `B_TIME` to the **exact moment** the question is asked.
+2. Update `BIRTH_PLACE` (or `LATITUDE` / `LONGITUDE`) to the location of the querent.
 3. Run the pipeline and open the generated HTML report.
 
 ### Key Interpretations
-1. **The Asker (Querent)**: Represented by the **Lagna Lord** (Lord of the 1st house) and the **Moon**.
-2. **The Subject (Quesited)**: Represented by the lord of the house corresponding to the topic (e.g., 7th for marriage, 10th for career, 4th for property).
+1. **The Asker (Querent)**: Signified by the **Lagna Lord** (Lord of the 1st house) and the **Moon**.
+2. **The Subject (Quesited)**: Signified by the lord of the house corresponding to the topic (e.g., 7th for marriage/partnerships, 10th for career, 4th for property).
 3. **The Answer (Tajika Aspects)**: Check the **Planetary Aspects -> Tajika** tab:
-   * **Conjunction, Sextile, or Trine**: Success and resolution.
-   * **Square or Opposition**: Obstacles, conflict, or failure.
-   * **No Aspect**: Stagnation or no progression.
-4. **Timing & Application (Ithasala)**: If the faster-moving planet has a lower degree than the slower planet, they are **applying** (Ithasala Yoga), indicating success in the future. If the faster planet has a higher degree, they are **separating** (Esharapha Yoga), meaning the opportunity has passed.
+   * **Conjunction, Sextile, or Trine**: Success and cooperative resolution.
+   * **Square or Opposition**: Obstacles, friction, or delay.
+   * **No Aspect**: Lack of connection or stagnation.
+4. **Timing & Application (*Ithasala*)**: If the faster-moving planet is at a lower degree than the slower planet and applying toward exact aspect, it forms **Ithasala Yoga**, indicating future fulfillment. If separating (**Esharapha Yoga**), the window of opportunity has passed.
 
 ---
 
 ## 📖 Traditional Parashari Prasna Guide
 
-While Tajika aspects are degree-based, traditional **Parashari Prasna** uses classical house-based aspects (*Graha Drishti*), relationship dynamics, and planetary alignments to answer horary questions.
+While Tajika aspects are degree-based, traditional **Parashari Prasna** uses sign/house-based aspects (*Graha Drishti*), relationship dynamics, and planetary dignities to answer horary questions.
 
 ### Key Interpretations in Parashari Prasna
-1. **Lagna & Lagna Lord (Querent)**: 
+1. **Lagna & Lagna Lord (Querent)**:
    * Check the **Planets** and **Planetary Friendships** tabs.
-   * If the Lagna Lord is placed in a Kendra (1, 4, 7, 10) or Trikona (5, 9), or is exalted/own sign, the querent is strong enough to achieve the goal.
+   * If the Lagna Lord is placed in a Kendra (1, 4, 7, 10) or Trikona (5, 9), or is exalted/in own sign, the querent has the agency to achieve the goal.
 2. **Quesited House & House Lord (The Query)**:
-   * Look at the target house (e.g. 7th house for business partner/spouse). 
-   * If the house is aspected by its own lord or by benefics (Jupiter, Venus, Mercury), or is free from malefic occupants/aspects, the desire is highly favorable.
+   * Examine the target house (e.g., 7th house for spouse/business partner).
+   * If the house is aspected by its own lord or natural benefics (Jupiter, Venus, Mercury) and free from malefic affliction, the outcome is favorable.
 3. **Mutual Aspects & Conjunctions**:
-   * Check **Planetary Aspects -> Parashari**:
-     * If the Lagna Lord aspects the Quesited House or the Quesited Lord directly, success is indicated.
-     * If they are conjoined in the same house, resolution is imminent.
-4. **Planetary Friendships (Panchadha Maitri)**:
-   * Check the **Planetary Friendships** compound friendship table.
-   * If the Lagna Lord and Quesited House Lord are **Friends (Mitra)** or **Great Friends (Adhi Mitra)**, agreement, cooperative resolution, and a positive outcome are easily reached.
-   * If they are **Enemies (Shatru)** or **Great Enemies (Adhi Shatru)**, the query faces hidden friction, lack of cooperation, or cancellation.
+   * Check **Planetary Aspects -> Parashari**: direct aspect or conjunction between the Lagna Lord and Quesited Lord indicates fulfillment.
+4. **Planetary Friendships (*Panchadha Maitri*)**:
+   * Check the **Planetary Friendships** compound table. **Friends (*Mitra*)** or **Great Friends (*Adhi Mitra*)** indicate harmony and cooperative resolution; **Enemies (*Shatru*)** or **Great Enemies (*Adhi Shatru*)** indicate friction or incompatible terms.
 5. **Benefic/Malefic Distribution**:
-   * Benefics (Jupiter, Venus, Mercury, strong Moon) in Kendras (1, 4, 7, 10) or Trikonas (5, 9) bring sudden, helpful assistance.
-   * Malefics (Mars, Saturn, Sun) in Dusthanas (6, 8, 12) represent that difficulties/enemies/losses are neutralized, whereas malefics in Kendras indicate obstacles and frustration.
+   * Natural benefics in Kendras (1, 4, 7, 10) or Trikonas (5, 9) bring timely support; natural malefics in Upachayas (3, 6, 10, 11) grant resilience to overcome obstacles.
 
 ---
 
 ## 📖 Natal Astrology Guide (Birth Chart Interpretation)
 
-Use the interactive HTML report to synthesize a birth chart using Vedic principles:
+Use the interactive HTML report (`<name>_report.html`) alongside the knowledge base to synthesize a natal chart:
 
-### 1. The Core Triad (Sudarshana Chakra)
+### 1. The Core Triad (*Sudarshana Chakra*)
 Go to the **Sudarshana Chakra** tab. This concentric 3-wheel chart aligns three dimensions of the native's life:
-* **Outer Ring (Udaya Lagna)**: Physical body, career, actions, and outer environment.
-* **Middle Ring (Chandra Lagna)**: Mind, emotions, psychology, and receptivity.
-* **Inner Ring (Surya Lagna)**: Soul, vitality, health, and spirit.
-* *Synthesis*: A house is strongest and manifests with ease when it contains benefics or strong placements in all three rings.
+* **Outer Ring (*Udaya Lagna*)**: Physical body, concrete environment, and visible trajectory.
+* **Middle Ring (*Chandra Lagna*)**: Mind, emotional conditioning, and psychological receptivity.
+* **Inner Ring (*Surya Lagna*)**: Soul vitality, authority, and core dharma.
 
-### 2. Planetary Strengths & Dignities
-* **Planetary Synthesis Tab**: Look at the labels under the planet cards to identify Jaimini **Chara Karakas** (e.g. *Atmakaraka* - the soul significator, *Amatyakaraka* - career significator).
-* **Shadbala Tab**: Check the detailed breakdown of the 6 sources of planetary strength. A planet with a high Shadbala total (> threshold) manifests its house significations strongly and easily in the physical world.
+### 2. Planetary Strengths, Dignities & Avasthas
+* **Planetary Synthesis Tab**: Inspect Jaimini **Chara Karakas** (*Atmakaraka* through *Darakaraka*), divisional dignities (`D9` Navamsa and `D10` Dasamsa), and the 5-fold **Avasthas** (*Bālādi, Jāgratādi, Dīptādi, Lajjitādi, Shayanādi*).
+* **Shadbala Tab**: Review the 6 sources of planetary strength. A planet with high Shadbala and a strong Avastha delivers its house significations reliably; a planet with high dignity but low Shadbala (`High Drive / Lacks Resources`) indicates strong ambition that requires careful pacing.
 
-### 3. Relationship Dynamics (Panchadha Maitri)
-* **Planetary Friendships Tab**: View the **Compound Friendships** grid. Planets that are natural or temporal friends cooperate, whereas enemies (e.g. Saturn and Sun) placed together create tension, friction, or delays in the houses they rule.
+### 3. Relationship Dynamics (*Panchadha Maitri*)
+* **Planetary Friendships Tab**: View the **Compound Friendships** grid to evaluate how house lords cooperate or clash when conjoined or aspecting one another.
 
-### 4. House Support & Gochara (Ashtakavarga)
-* **Ashtakavarga Tab**: Review the **Samudaya Ashtakavarga (SAV)** row at the bottom of the table:
-  * Houses with **> 28 bindus** indicate strength, prosperity, and success during planetary transits.
-  * Houses with **< 25 bindus** represent areas of life that require discipline, structure, and hard work to sustain.
-* **Gochara Transits Tab**: Checks transits against the natal Moon. Auspicious transits will bring positive results if they cross houses with high SAV bindu counts.
+### 4. House Support & Gochara (*Ashtakavarga*)
+* **Ashtakavarga Tab**: Review the **Samudaya Ashtakavarga (SAV)** row:
+  * Houses with **$\ge 30$ bindus** represent high-support environments where initiatives gain traction easily.
+  * Houses with **$< 25$ bindus** represent high-friction environments that demand extra patience and structural discipline.
+* **Gochara Transits Tab**: Evaluates current planetary transits from the natal Moon (*Vedha* obstructions and *Murthi Nirnaya* quality) combined with the transit house's SAV bindu support.
 
-### 5. Timing of Events (Vimshottari Dasha)
-* **Vimshottari Dasha Tab**: Expand the nested list to track current Mahadashas, Antardashas, and Pratyantardashas. The lords of the active dasha periods will activate their natal house placements and planetary configurations during their respective time windows.
+### 5. Timing of Events (*Vimshottari Dasha*)
+* **Vimshottari Dasha Tab**: Expand the nested timeline to track active *Mahadasha*, *Antardasha*, and *Pratyantardasha* lords, which awaken the houses they rule and occupy in the natal chart.
 
 ---
 
 ## 🗺️ Roadmap & Planned Fixes
 
-See **[ROADMAP.md](ROADMAP.md)** for our active backlog, scheduled fixes, and completed milestones:
+See **[`ROADMAP.md`](ROADMAP.md)** for the active backlog, architectural history, and completed milestones:
 
 * **Classical Yoga Deduplication & Parity Harmonization** *(Scheduled)*: Harmonize active yoga evaluation between the HTML dashboard and LLM context exporters to eliminate duplicate generic clone cards.
-* **Implemented Avastha Systems**: Full calculations for Bālādi, Jāgradādi, Dīptādi, Shayanādi, and Lajjitādi Avasthas are live in the engine and rendered across all HTML dashboards and LLM payloads.
+* **Implemented Avastha & KB Systems** *(Completed)*: Full calculations for *Bālādi, Jāgratādi, Dīptādi, Lajjitādi,* and *Shayanādi* Avasthas, plus the 22-card `astrology_kb` and Hermes skill synchronization pipeline.
