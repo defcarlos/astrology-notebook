@@ -36,6 +36,6 @@ This document tracks planned fixes, enhancements, and architectural improvements
 - [x] **Parashari Planetary Aspects:** Fixed house occupants and Lagna aspect detection, and corrected HTML aspect table rendering.
 
 ### 3. Knowledge Base & Local LLM Skills
-- [x] **Visual Verification Checklist Badge:** Added mandatory Step 0 verification checklist badge to `astrology-report-gatekeeper/SKILL.md` and `astrology-writer/SKILL.md` for visual proof of quality checks in local LLMs (LM Studio Bionic, Ollama).
+- [x] **Visual Verification Checklist Badge:** Decoupled verification badge from `astrology-writer/SKILL.md` so the writer outputs clean readings, reserving the checklist badge strictly for `astrology-report-gatekeeper/SKILL.md` when the gatekeeper supervisor is invoked.
 - [x] **Link Portability & Sanitization:** Converted 106 absolute links to relative paths across all 32 knowledge base markdown files (0 broken links remaining).
 - [x] **Cross-Platform Compatibility:** Replaced Unix symlinks with portable markdown pointer files.

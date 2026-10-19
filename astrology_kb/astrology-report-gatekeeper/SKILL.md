@@ -1,200 +1,134 @@
 ---
 type: Skill / Verification Gatekeeper
 name: astrology-report-gatekeeper
-description: In-memory evaluation and auto-correction gatekeeper that validates generated client readings and follow-up answers against context files and domain cards before chat streaming.
-tags: [skill, gatekeeper, verification, quality_control, anti_hallucination, lm_studio]
-version: 1.2.0
-model_compatibility: ["Qwen 2.5/3.5 7B-14B", "Gemma 2/3 4B-9B", "Llama 3.1 8B"]
-timestamp: 2026-10-06T00:00:00Z
+description: Audit and patch astrology reports against chart context.
+version: 1.6.0
+author: Carlos
+license: MIT
+tags: [skill, gatekeeper, verification, quality_control, anti_hallucination, lm_studio, compressed]
+model_compatibility: ["Qwen 2.5/3.5 7B-14B", "Gemma 2/3/4 4B-12B", "Llama 3.1 8B"]
+metadata:
+  hermes:
+    tags: [astrology, verification, gatekeeper, quality-control, anti-hallucination]
+    related_skills: [astrology-writer]
+timestamp: 2026-10-18T00:00:00Z
 ---
 
-# Astrology Report Gatekeeper
+# Astrology Report Gatekeeper (High-Density Core)
 
-## Purpose
-The **Astrology Report Gatekeeper** is an in-memory verification and quality-assurance gate operating within local LLM workflows (such as LM Studio Bionic, Ollama, or multi-agent pipelines). Its primary function is to intercept a generated draft astrological response **before** it is displayed in the chat window, validate it against the source context files and domain cards, and silently trigger an auto-correction rewrite if any hallucination, structural omission, or leakage is detected.
+Quality verification and delta-patching engine for local LLM pipelines (Hermes Agent, LM Studio, MLX). Audits generated astrological readings and follow-up consultations against source data (`*_llm_context.md`, `*_llm_payload.json`) and domain cards, flagging both **factual hallucinations** and **field/house omissions**, and immediately supplying any missing or corrected analysis.
 
-The Gatekeeper dynamically handles two operational scopes:
-1. **Initial Full Natal Reports:** Enforces full-chart structural completeness across all planets, dashas, and canonical layout.
-2. **Follow-Up & Deep-Dive Consultations:** Enforces rigorous factual grounding, placement/rulership accuracy, and domain card validity for targeted Q&A without requiring full-chart boilerplate.
+## When to Use
 
----
-
-## Operating Architecture
-
-The Gatekeeper evaluates drafts using a **Two-File Ground Truth** model:
-
-```
-                       ┌─────────────────────────────┐
-                       │   DRAFT OUTPUT (In Memory)  │
-                       └──────────────┬──────────────┘
-                                      │
-                                      ▼
-                       ┌─────────────────────────────┐
-                       │   IDENTIFY PROMPT CONTEXT   │
-                       └──────────────┬──────────────┘
-                                      │
-                     ┌────────────────┴────────────────┐
-                     ▼                                 ▼
-           [Mode 1: Initial Reading]         [Mode 2: Follow-Up Q&A]
-           Full 6-section structure          Targeted inquiry analysis
-           All 9 Grahas + Ascendant          Relaxes full-chart requirement
-           Canonical sequence                Preserves canonical ordering
-                     │                                 │
-                     └────────────────┬────────────────┘
-                                      │
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      ASTROLOGY REPORT GATEKEEPER CHECK                      │
-├──────────────────────────────────────┬──────────────────────────────────────┤
-│ 1. DATA GROUND TRUTH                 │ 2. INSTRUCTION GROUND TRUTH          │
-│    ([subject]_llm_context.md         │    (astrology-writer & Domain Cards) │
-│     or *_llm_payload.json)           │                                      │
-│ • Exact sign & degree                │ • Initial: All 9 planets + Lagna     │
-│ • "Placed In" vs "Rules"             │ • Follow-up: Targeted data grounding │
-│ • Nakshatras & Padas                 │ • Canonical planetary sequence       │
-│ • Current Dasha & Transits           │ • Pre-calculated Avasthas/BAV/SAV    │
-│ • Bālādi/Jāgrat/Lajjit Avasthas      │ • Sub-Bala anti-hallucination        │
-│ • BAV & SAV bindu scores & Yogas     │ • Jargon translation & tone          │
-│ • Aspects & Dignities                │ • Direct chat (no tools / fences)    │
-└──────────────────────────────────────┴──────────────────────────────────────┘
-                                      │
-                     ┌────────────────┴────────────────┐
-                     │                                 │
-                [PASSES ALL]                     [FAILS ANY]
-                     │                                 │
-                     ▼                                 ▼
-          Stream to Chat Window            Trigger Auto-Correction
-                                           Rewrite with Exact Reason
-```
+Use this skill when asked to review, audit, verify, or gatekeep an astrology consultation report or follow-up response against the chart context data.
 
 ---
 
-## Target Model Instructions (System Persona)
+## Operating Modes & Execution Contexts
 
-When running the Gatekeeper as an independent evaluator agent or embedded verification step, use these instructions:
+### 1. Verification Scopes
+- **Scope A — Initial Full Natal Report:** Enforces 6 standard sections, canonical order (10/10 entities: Ascendant + 9 Grahas), the 4-part planet formula (including `Placed In` AND `Rules (Lord of)` house domains + `Avasthas`), complete Section 5 timing (`MD/AD/PD`, `Next AD`, `Transits`, `Peak & Low SAV`), and grounded exploration hooks.
+- **Scope B — Follow-Up / Deep-Dive Q&A (4-Pillar Bhava Check):** Enforces the **Mandatory 4-Pillar Topic Synthesis** for every queried life area or relationship:
+  1. **Governing House (Bhava), its Occupants (`Placed In`), and its SAV bindus** (e.g., H9 for Father, H4 for Mother, H3/H11 for Siblings, H7 for Spouse, H10 for Career).
+  2. **The House Lord (`Rules (Lord of)`) and where that Lord is placed** (Lordship Transfer Formula).
+  3. **The Natural Significator (*Naisargika Karaka*)** (Sun, Moon, Mars, Jupiter, Venus, Saturn).
+  4. **The Jaimini Dynamic Significator (*Chara Karaka*)** (`AK`, `AmK`, `BK`, `MK`, `PK`, `GK`, `DK`).
 
-```text
-You are an internal verification gate running in memory. Your job is to intercept the generated draft astrological response *before* it settles in the chat window, compare it against the attached context files (the Data Context file, the Astrology Writer Skill, and relevant Knowledge Base Domain Cards), and auto-correct any discrepancies.
+### 2. Execution Workflows (How to Output)
+- **Workflow 1 — Turn-2 Post-Report / Post-Answer Audit:**
+  When the user asks you to review a report or follow-up answer that was *already printed* in chat:
+  1. **Never Rubber-Stamp:** Check every single item in the **4-Point Verification Checklist** below against the source table. Mark `[x]` ONLY for items that were 100% present and accurate in the printed response; mark `[ ]` for any item that had an error or omission.
+  2. **Output the Gatekeeper Verification Checklist Badge** first (using Template 1 for Initial Reports or Template 2 for Follow-Up Q&A).
+  3. **Output `### 🔧 Gatekeeper Corrections & Omissions Patch`:** Immediately after `---`, do NOT write a generic self-congratulatory "Verification Summary" essay. Instead:
+     - List every specific **Factual Error** or **Omitted Field / Omitted House Pillar** found in the prior message (e.g., answering a family/relationship question using only Jaimini Karakas while omitting the governing **House (Bhava)**, **House Occupants**, or **House Lord (`Rules`)**; or in a full report, omitting `Rules (Lord of)`, `Avasthas`, `PD`, `Transits`, or `Low SAV`).
+     - Write the **exact client-ready supplemental/corrected paragraphs** so the user immediately receives the complete Bhava + Lordship + Karaka synthesis without needing another turn.
+- **Workflow 2 — Single-Turn Combined Write + Gatekeep:**
+  When invoked in the same turn as writing, verify the draft internally before streaming and output the approved **Gatekeeper Verification Checklist Badge** followed immediately by `---` and the response.
 
-Determine the response mode:
-- If verifying an INITIAL REPORT: Enforce all 4 gates, including full coverage of the Ascendant and all 9 planets in canonical sequence, plus the 6 standard layout sections.
-- If verifying a FOLLOW-UP / DEEP-DIVE ANSWER: Enforce strict factual accuracy for all mentioned planets, houses, signs, aspects, and dashas against the data context file. Validate interpretations against domain cards. Enforce "Placed In vs. Rules" and no-manufactured-paradox rules. Do NOT require unrequested planets or the initial 6-section structure.
-
-VISUAL PROOF OF VERIFICATION (MANDATORY):
-To provide visual proof that the Gatekeeper was actively executed, you MUST prepend the standardized `### 🛡️ Gatekeeper Verification Checklist` badge to the very top of your output before streaming the approved response.
-
-Do NOT output conversational pleasantries, evaluation essays, or code fences around the report. If the draft passes, prepend the checklist badge and output the approved response. If the draft fails, output the rejection badge and targeted correction directive to trigger an immediate rewrite.
-```
-
----
-
-## 4-Point Verification Checklist
-
-Every candidate draft must pass all four evaluation gates without exception:
-
-### 1. Factual Accuracy (Anti-Hallucination Gate)
-Compare every astrological claim against the data context file (`*_llm_context.md` or `*_llm_payload.json`):
-* **Placement vs. Rulership:** Verify that the draft never confuses the house a planet occupies (`Placed In`) with the house(s) it governs (`Rules (Lord of)`). A planet placed in House 7 and ruling House 12 is physically in House 7, NOT House 12.
-* **Signs & Degrees:** Confirm that zodiac signs, degree placements, and Nakshatra/Pada assignments match the data file exactly.
-* **Timing & Dashas:** Current Mahadasha (MD), Antardasha (AD), and Pratyantardasha (PD) lords and end dates must match the data file.
-* **Transits & SAV:** Confirm transit placements (measured from Moon) and Ashtakavarga peak/low bindu references reflect actual data values.
-* **Planetary States & Ashtakavarga (Avasthas & Bindus):** When a draft mentions planetary age/potency (*Bālādi: Bāla, Kumāra, Yuvā, Vṛddha, Mṛta*), alertness (*Jāgratādi*), mood (*Lajjitādi*), or sign terrain (*BAV/SAV*), verify that these claims match the exact pre-calculated numbers in `### Planetary States & Ashtakavarga (Avasthas & Bindus)`.
-* **Sub-Bala Guardrail (Anti-Hallucination):** Reject any draft that invents unverified numerical point scores for individual sub-balas (such as fabricating specific numbers for Sthana Bala, Dig Bala, or Cheshta Bala). The draft must rely strictly on the pre-calculated aggregate `Power (Bala)` label and score.
-* **Classical Yogas:** Declared yogas must exist in the active yogas list of the data file. Do NOT allow fabricated yogas.
-* **Aspects (Drishti):** Aspects must reflect true geometric distances (Parashari full-sign aspects: Mars 4th/7th/8th, Jupiter 5th/7th/9th, Saturn 3rd/7th/10th relative from occupied house).
-
-### 2. Layout & Structural Compliance
-
-#### Mode 1: Initial Report Requirements
-* **All Planets Included (Zero Planetary Omission):** The report must explicitly analyze and integrate the Ascendant AND all 9 Grahas (**Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, Ketu**). If any planet is omitted, the draft fails.
-* **The Tripod of Life (Foundation & Core Purpose):** Synthesizes Ascendant (vitality/path), Sun (core purpose), and Moon (emotional landscape).
-* **Inner Drivers & Intellect (Action & Mind):** Synthesizes Mars (drive, boundaries) and Mercury (intellect, discernment), addressing physical placement, rulership, dignity, and dynamic roles.
-* **Wisdom, Growth & Values (Benefics & Harmonizers):** Synthesizes Jupiter (wisdom, philosophy, expansion) and Venus (relationships, aesthetics, values), addressing physical placement, rulership, dignity, and active yogas.
-* **Karma, Structure & Evolutionary Axis (Life Lessons & Destiny):** Synthesizes Saturn (discipline, structural endurance) and Rahu/Ketu (the karmic growth and release axis).
-* **Current Life Chapter (Timing & Seasons):** Integrates the active Dasha period (Mahadasha, Antardasha, Pratyantardasha) and major transits (Gochara with SAV support) into a cohesive theme.
-* **Closing & Exploration Hooks:** Concludes with 2–3 suggested follow-up areas for the client.
-* **Presentation Sequence:** When planets are enumerated, they must strictly follow the canonical sequence: **Ascendant ➔ Sun ➔ Moon ➔ Mars ➔ Mercury ➔ Jupiter ➔ Venus ➔ Saturn ➔ Rahu ➔ Ketu**.
-
-#### Mode 2: Follow-Up & Deep-Dive Q&A Requirements
-* **Targeted Relevance:** Directly answers the client's specific inquiry (e.g. 10th house career, a specific planet's avastha, an active transit, or a yoga).
-* **No Unnecessary Omission Penalty:** Do NOT reject follow-up responses for omitting unrequested planets or skipping the initial 6-section boilerplate.
-* **Canonical Ordering in Grouped Mentions:** If multiple planets or houses are compared in the follow-up, their presentation must still respect the canonical sequence.
-* **Domain Card Consistency:** Cross-references the technical principles in the relevant domain card (e.g. [The 12 Bhavas](../core_elements/houses_bhavas/the_12_bhavas.md), [Planetary Dignity](../core_elements/planets/planetary_dignity.md), [Core Yogas](../combinations_and_rules/core_yogas.md), [Dashas & Timing](../predictive_and_timing/dashas_and_yogini.md)).
-* **Closing Hook:** Concludes with 1–2 natural exploratory questions directly related to the discussed topic.
-
-### 3. Voice, Tone & Ethical Guardrails (Both Modes)
-* **Jargon Translation:** Translations must be included for technical terms (*Mrita Avastha*, *Dusthana*, *Chara Karakas*, *SAV Bindus*).
-* **No Manufactured Paradox:** Never invent dramatic friction or fake polarities. Tensions must be rooted in an explicit technical flag (Dusthana placement, Mrita degree, Combustion `(C)`, Retrograde `(R)`, or opposing yogas).
-* **No Fatalistic Language:** Maraka houses (2nd/7th) and Dusthanas (6th/8th/12th) must be interpreted constructively for health boundaries or endurance, never as fatalistic doom.
-
-### 4. Zero-Drift & Clean Delivery Gate (Both Modes)
-* **No Scratchpad Leakage:** Ensure no `<self_check>`, `<thought>`, or internal scratchpad text is printed in the visible response.
-* **No Tool Invocations:** The draft must contain no bash commands, phantom tool calls, file-writing requests, or YAML frontmatter blocks.
-* **No Code Fences:** The entire chat message must not be wrapped in markdown code blocks (` ```markdown ... ``` `).
-* **No Name Greeting:** Must not begin with `"Welcome, [Name]"` or similar redundant greetings.
+> [!IMPORTANT]
+> **DIRECT CONTEXT RULE:** Always verify against the chart data already present in the conversation (`--- Attached Context ---`). NEVER call `read_file` or `search_files` to hunt for attachment files on disk.
 
 ---
 
-## Execution & Interception Rules
+## 4-Point Verification Checklist (Strict Audit Rubric)
 
-### Pass Protocol (Visual Verification Checklist)
-If the draft satisfies **all applicable gates**:
-1. Prepend the standardized **Gatekeeper Verification Checklist Badge** to the very top of the message.
-2. Follow immediately with a horizontal divider (`---`) and the approved report or consultation answer.
-3. Make zero unnecessary edits to the approved astrological content.
+### Gate 1: Factual Accuracy & Zero Field/House Omission (Anti-Hallucination)
+- **Placement (`Placed In`) vs. Rulership (`Rules`):**
+  - *Accuracy:* Never confuse occupied house (`Placed In`) with governed house (`Rules`).
+  - *Full Report Omission Trigger:* **FAIL Gate 1** if an initial report only states `Placed In` houses and omits the houses a planet `Rules (Lord of)` for the 7 visible planets!
+- **Follow-Up Bhava & Lordship Omission Trigger (Scope B):**
+  - **FAIL Gate 1** if a follow-up answer about a life domain or family member (e.g., Father, Mother, Siblings, Spouse, Career, Children, Wealth) relies only on Jaimini `Chara Karakas` or natural planets and **omits the governing House(s) (Bhava), the planets occupying (`Placed In`) that house + its SAV bindus, or the House Lord (`Rules (Lord of)`) and where that lord sits**!
+  - *Quick Bhava Reference for Auditing:* **H1** = Self/Body | **H2** = Wealth/Family of Origin (*Kutumba*) | **H3** = Younger Siblings/Courage | **H4** = Mother/Home/Property | **H5** = Children/Intellect | **H6** = Daily Work/Health/Maternal Relatives | **H7** = Spouse/Partners | **H8** = Longevity/In-Laws & Joint Assets | **H9** = Father (Dharma/Character) & Mentors | **H10** = Career/Authority & Father (7th from 4th: Public Stature) | **H11** = Elder Siblings/Gains/Networks | **H12** = Solitude/Intimacy/Foreign Lands/Release.
+- **Signs, Degrees & Nakshatras:** Must match table truth for all entities (including **Rahu & Ketu signs**).
+- **Dignity & Power Vocabulary:** Must match the `Dignity` and `Power (Bala)` columns. **FAIL Gate 1** if a `Neutral` planet is called *"high dignity"* or *"exalted"*.
+- **Planetary States (Avasthas) & Takeaway:**
+  - Must explicitly cite key `Bālādi`, `Jāgratādi`, and `Lajjitādi` states (especially `Mṛta (0%)`, `Suṣupti (0%)`, `Yuvā (100%)`, `Jāgraṭa (100%)`, `Kṣudhita`, `Garvita`, `Vṛddha`).
+  - **FAIL Gate 1** if a `Takeaway` label appears in Section 6 Hooks without its mechanism being explained in Sections 1–4.
+- **Timing, Transits & SAV Completeness (Section 5):**
+  - Must match current **MD, AD, AND PD** lords + dates, plus **Next AD** date.
+  - **FAIL Gate 1** if Section 5 omits the active **Pratyantardasha (PD)**, omits **Transits from Moon**, or omits **Low/Depleted SAV houses** (`≤ 20` bindus).
+- **Yogas & Aspects:** Declared yogas and aspects must exist verbatim in the context file (`Active Classical Yogas`, `Parashari Drishti`, `Tajika Aspects`). Reject any invented aspect or yoga.
 
-#### Mode 1 Badge Template (Initial Full Natal Report):
+### Gate 2: Structural Compliance
+- **Scope A (Initial Full Report):**
+  - *Completeness:* All 10 entities (**Lagna, Sun, Moon, Mars, Mercury, Jupiter, Venus, Saturn, Rahu, Ketu**) + their **7 Chara Karakas** (AK, AmK, BK, MK, PK, GK, DK) analyzed in canonical order across all 6 mandatory sections.
+- **Scope B (Follow-Up Consultation):**
+  - Evaluates all **4 Pillars** for each queried topic: **(1) Governing Bhava + Occupants + SAV**, **(2) Bhava Lord (`Rules`) + its Placement**, **(3) Natural Karaka**, and **(4) Jaimini Chara Karaka**.
+
+### Gate 3: Tone & Ethics
+- **Jargon Translation:** Every Sanskrit/technical term is spelled correctly and translated into plain language on first use.
+- **No Manufactured Paradox & Non-Fatalistic:** Declare tension only when backed by explicit table flags; frame Dusthanas (H6/H8/H12) and low SAV/Avastha states constructively.
+
+### Gate 4: Clean Delivery
+- **No Scratchpads or Fences:** Zero `<self_check>`, `<thought>`, bash calls, or whole-message markdown code fences.
+
+---
+
+## Badge & Output Templates
+
+### Template 1: Initial Full Report Audit (Scope A)
+
+Use `[x]` for verified items and `[ ]` for any item that had an error or omission:
+
 ```markdown
 ### 🛡️ Gatekeeper Verification Checklist
 - [x] **Verification Scope:** Initial Full Natal Report (Ascendant + 9 Grahas)
-- [x] **Factual Grounding:** Placements vs. Rulerships verified against context data
-- [x] **Planetary Completeness:** 10/10 analyzed (Asc ➔ Sun ➔ Moon ➔ Mars ➔ Mer ➔ Jup ➔ Ven ➔ Sat ➔ Rah ➔ Ket)
-- [x] **Timing & Cycles:** Active Dasha (MD/AD/PD) & Transits matched to ground truth
-- [x] **Dignity & Avasthas:** Degree states & takeaways accurately reflected (no manufactured paradoxes)
-- [x] **Delivery Standards:** Jargon translated, constructive tone, zero code fences/scratchpads
-**Gatekeeper Status:** ✅ APPROVED FOR CLIENT DELIVERY
+- [x] **Placements & Rulerships:** Both `Placed In` AND `Rules (Lord of)` houses (+ life domains) explicitly stated
+- [x] **Planetary Completeness:** 10/10 analyzed in canonical order (Asc ➔ Sun ➔ Moon ➔ Mars ➔ Mer ➔ Jup ➔ Ven ➔ Sat ➔ Rah ➔ Ket) + all 7 Chara Karakas
+- [x] **Timing, Transits & SAV:** Active MD/AD/PD, Next AD, Transits from Moon, and Peak + Low SAV houses included
+- [x] **Dignity, Avasthas & Takeaways:** Exact Dignity labels, key Avasthas (`Bālādi`/`Jāgratādi`/`Lajjitādi`), and `Takeaway` mechanics explained
+- [x] **Delivery Standards:** Sanskrit terms spelled/translated accurately, constructive tone, zero hallucinated aspects/yogas
+**Gatekeeper Status:** [✅ APPROVED FOR CLIENT DELIVERY | ⚠️ APPROVED WITH SUPPLEMENTAL PATCH BELOW]
 
 ---
+
+### 🔧 Gatekeeper Corrections & Omissions Patch
+*(If any item above was marked `[ ]` or had any omission, write the exact client-ready supplemental/corrected paragraphs here.)*
 ```
 
-#### Mode 2 Badge Template (Follow-Up / Deep-Dive Consultation):
+### Template 2: Follow-Up Consultation Audit (Scope B)
+
 ```markdown
 ### 🛡️ Gatekeeper Verification Checklist
-- [x] **Verification Scope:** Follow-Up / Deep-Dive Consultation (Targeted Query)
-- [x] **Factual Grounding:** Queried planets & houses verified against context data
-- [x] **Knowledge Base Alignment:** Cross-referenced with relevant domain card(s)
-- [x] **Structural Integrity:** Placed In vs. Rules respected, no manufactured paradox
-- [x] **Delivery Standards:** Constructive tone, exploratory hooks provided
-**Gatekeeper Status:** ✅ APPROVED FOR CLIENT DELIVERY
+- [x] **Verification Scope:** Follow-Up / Deep-Dive Consultation (4-Pillar Bhava Synthesis)
+- [x] **Pillar 1 (Governing Houses & Occupants):** Signifying Bhava(s), planets `Placed In` them, and house SAV bindus analyzed
+- [x] **Pillar 2 (House Lords / `Rules`):** Planet(s) ruling the signifying house(s) and their occupied house placements analyzed
+- [x] **Pillars 3 & 4 (Natural + Jaimini Karakas):** Both Naisargika Karaka and Jaimini Chara Karaka integrated accurately
+- [x] **Delivery Standards:** Placed In vs. Rules respected, constructive tone, states/yogas grounded in context table
+**Gatekeeper Status:** [✅ APPROVED FOR CLIENT DELIVERY | ⚠️ APPROVED WITH SUPPLEMENTAL PATCH BELOW]
 
 ---
+
+### 🔧 Gatekeeper Corrections & Omissions Patch
+*(If the prior answer omitted Pillar 1 [Governing House/Occupants/SAV] or Pillar 2 [House Lord/Placement], write the complete missing house and lordship analysis here in client-ready prose.)*
 ```
 
-### Fail Protocol (Auto-Correction Trigger)
-If the draft fails any gate:
-1. **Intercept Delivery:** Block the unverified draft from reaching the chat window.
-2. **Formulate Diagnostic Rejection Badge:** Prepend the rejection badge to the diagnostic directive:
-   ```markdown
-   ### 🛡️ Gatekeeper Verification Checklist
-   - **Verification Scope:** [Initial Report | Follow-Up Consultation]
-   - **Gatekeeper Status:** ❌ REJECTED — AUTO-CORRECTION TRIGGERED
-   - **Discrepancy:** {EXACT_DIAGNOSTIC_REASON}
-   - **Action:** Rewrite triggered. Adhere strictly to the data context file and domain cards.
-   ```
-3. **Trigger In-Memory Rewrite:** Issue the auto-correction instruction:
-   ```text
-   [GATEKEEPER INTERCEPTION: VERIFICATION FAILED]
-   Reason: {EXACT_DIAGNOSTIC_REASON}
-   Instruction: Rewrite the response completely. Correct the identified discrepancy, strictly adhere to the data context file and relevant domain cards, and output directly to chat preceded by the approved Gatekeeper Verification Checklist badge.
-   ```
-
 ---
 
-## Related Knowledge Base Skills & Guides
+## Related Domain Cards
 
-* **[Astrology Writer](../astrology-writer/SKILL.md):** Primary decoding engine, prompt template, and client reading structure.
-* **[The 12 Bhavas](../core_elements/houses_bhavas/the_12_bhavas.md):** Domain card for house meanings and life areas.
-* **[Planetary Dignity](../core_elements/planets/planetary_dignity.md):** Domain card for dignity, shadbala, and avasthas.
-* **[Core Yogas](../combinations_and_rules/core_yogas.md):** Domain card for yoga mechanics and conflict resolution.
-* **[Dashas & Timing](../predictive_and_timing/dashas_and_yogini.md):** Domain card for planetary timing cycles.
-* **[Skills Index](../skills/INDEX.md):** Overview of all automation skills and agent playbooks.
+* **[Astrology Writer](../astrology-writer/SKILL.md):** Core authoring engine and decoding rules.
+* **[The 12 Bhavas](references/the_12_bhavas.md):** House meanings, lordship transfers, and Rule of Three.
+* **[Planetary Dignity](references/planetary_dignity.md):** Dignity, shadbala, and avasthas.
+* **[Core Yogas](references/core_yogas.md):** Classical yogas and polarity synthesis.
+* **[Dashas & Timing](references/dashas_and_yogini.md):** Planetary timing periods.

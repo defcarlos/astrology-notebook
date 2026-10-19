@@ -1,0 +1,1 @@
+../../skills/astrology_batch_processor.md

@@ -1,0 +1,1 @@
+../../core_elements/signs_and_zodiac/decoding_the_zodiac.md

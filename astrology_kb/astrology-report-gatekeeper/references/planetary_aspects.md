@@ -1,0 +1,1 @@
+../../core_elements/planets/planetary_aspects.md

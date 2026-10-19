@@ -1,0 +1,1 @@
+../../skills/astrology_template_engine.md
