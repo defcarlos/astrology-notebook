@@ -8,7 +8,7 @@ timestamp: 2026-10-18T00:00:00Z
 
 # Core Yogas: Diagnostic Card
 
-Planetary Yogas connect personal drive (*Purusha*) to specific life outcomes (*Karma Phalas*). Use this card alongside the [Astrology Writer](../astrology-writer/SKILL.md) and [300 Important Combinations](300_important_combinations.md) to decode yoga formations and reconcile opposing results.
+Planetary Yogas connect personal drive (*Purusha*) to specific life outcomes (*Karma Phalas*). Use this card alongside the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md) and [300 Important Combinations](300_important_combinations.md) to decode yoga formations and reconcile opposing results.
 
 ---
 

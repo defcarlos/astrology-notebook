@@ -8,7 +8,7 @@ timestamp: 2026-10-18T00:00:00Z
 
 # Hellenistic Astrology & Sect: Diagnostic Card
 
-Hellenistic astrology (Mediterranean tradition, 1st c. BCE – 7th c. CE) maps the objective conditions of *Fate* and *Fortune* using Whole Sign Houses (*Topoi*), **Sect** (*Hairesis* — Day vs. Night chart), and Planetary Joys. Reference alongside [Hellenistic Places](../core_elements/houses_bhavas/hellenistic_places.md) and the [Astrology Writer](../astrology-writer/SKILL.md).
+Hellenistic astrology (Mediterranean tradition, 1st c. BCE – 7th c. CE) maps the objective conditions of *Fate* and *Fortune* using Whole Sign Houses (*Topoi*), **Sect** (*Hairesis* — Day vs. Night chart), and Planetary Joys. Reference alongside [Hellenistic Places](../core_elements/houses_bhavas/hellenistic_places.md) and the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md).
 
 ---
 

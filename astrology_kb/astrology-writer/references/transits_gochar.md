@@ -1,1 +1,0 @@
-../../predictive_and_timing/transits_gochar.md

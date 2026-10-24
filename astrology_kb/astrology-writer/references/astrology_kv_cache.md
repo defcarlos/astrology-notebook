@@ -1,1 +1,0 @@
-../../skills/astrology_kv_cache.md

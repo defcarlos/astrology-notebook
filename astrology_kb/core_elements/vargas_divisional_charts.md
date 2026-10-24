@@ -8,7 +8,7 @@ timestamp: 2026-10-18T00:00:00Z
 
 # Divisional Charts (Vargas): Diagnostic Card
 
-In Vedic astrology, divisional charts (*Vargas*) provide microscopic cross-sections of the primary birth chart (D-1 Rasi). While D-1 shows the physical tree and environment, the Vargas reveal the internal seed and whether that tree bears lasting fruit. Use alongside the [Astrology Writer](../astrology-writer/SKILL.md) and [Planetary Dignity](planets/planetary_dignity.md).
+In Vedic astrology, divisional charts (*Vargas*) provide microscopic cross-sections of the primary birth chart (D-1 Rasi). While D-1 shows the physical tree and environment, the Vargas reveal the internal seed and whether that tree bears lasting fruit. Use alongside the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md) and [Planetary Dignity](planets/planetary_dignity.md).
 
 ---
 

@@ -8,7 +8,7 @@ timestamp: 2026-10-18T00:00:00Z
 
 # Planetary Avasthas: Diagnostic Card
 
-While [Planetary Dignity](planetary_dignity.md) defines environmental comfort, an **Avastha** dictates a planet's internal vitality, alertness, emotional disposition, and physical capacity to manifest karma. Use alongside the [Astrology Writer](../../astrology-writer/SKILL.md).
+While [Planetary Dignity](planetary_dignity.md) defines environmental comfort, an **Avastha** dictates a planet's internal vitality, alertness, emotional disposition, and physical capacity to manifest karma. Use alongside the [Astro Gatekeeper](../../astro-gatekeeper/SKILL.md).
 
 ---
 

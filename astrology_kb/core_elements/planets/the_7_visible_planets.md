@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:32:00Z
 
 # The 7 Visible Planets: Diagnostic Card
 
-In Jyotish, planets are called *Grahas* ("seizers of consciousness"). They act as cosmic focal points that channel specific psychological functions and life domains. Use alongside the [Astrology Writer](../../astrology-writer/SKILL.md) and [The 12 Bhavas](../houses_bhavas/the_12_bhavas.md).
+In Jyotish, planets are called *Grahas* ("seizers of consciousness"). They act as cosmic focal points that channel specific psychological functions and life domains. Use alongside the [Astro Gatekeeper](../../astro-gatekeeper/SKILL.md) and [The 12 Bhavas](../houses_bhavas/the_12_bhavas.md).
 
 ---
 

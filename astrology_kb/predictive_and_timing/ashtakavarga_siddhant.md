@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:08:00Z
 
 # Ashtakavarga (SAV) Matrix: Diagnostic Card
 
-Ashtakavarga provides an objective mathematical score (Bindus / points) for each of the 12 signs and houses, measuring inherent structural capacity and transit permeability. Reference alongside the [Astrology Writer](../astrology-writer/SKILL.md).
+Ashtakavarga provides an objective mathematical score (Bindus / points) for each of the 12 signs and houses, measuring inherent structural capacity and transit permeability. Reference alongside the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md).
 
 ---
 

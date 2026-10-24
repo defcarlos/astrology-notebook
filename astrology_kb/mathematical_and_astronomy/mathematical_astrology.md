@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:42:00Z
 
 # Mathematical Foundations: Diagnostic Card
 
-Astrology interprets astronomical geometry. Use this card alongside the [Astrology Writer](../astrology-writer/SKILL.md) to understand the coordinate mechanics behind chart summaries.
+Astrology interprets astronomical geometry. Use this card alongside the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md) to understand the coordinate mechanics behind chart summaries.
 
 ---
 

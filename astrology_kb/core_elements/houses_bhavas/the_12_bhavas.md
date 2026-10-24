@@ -8,7 +8,7 @@ timestamp: 2026-10-18T00:00:00Z
 
 # The 12 Bhavas (Houses): Diagnostic Card
 
-The 12 Bhavas map the complete spectrum of human life experience, environment, and relationships across the four Purusharthas (*Dharma, Artha, Kama, Moksha*). Use alongside the [Astrology Writer](../../astrology-writer/SKILL.md) and [Hellenistic Places](hellenistic_places.md).
+The 12 Bhavas map the complete spectrum of human life experience, environment, and relationships across the four Purusharthas (*Dharma, Artha, Kama, Moksha*). Use alongside the [Astro Gatekeeper](../../astro-gatekeeper/SKILL.md) and [Hellenistic Places](hellenistic_places.md).
 
 ---
 

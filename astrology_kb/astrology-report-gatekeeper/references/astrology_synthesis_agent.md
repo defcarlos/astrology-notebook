@@ -1,1 +1,0 @@
-../../skills/astrology_synthesis_agent.md

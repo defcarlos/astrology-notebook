@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:10:00Z
 
 # Planetary Aspects: Diagnostic Card
 
-An aspect (*Drishti* = "sight" or desire) defines how a planet projects its energy from its occupied house into other areas of life. Use alongside the [Astrology Writer](../../astrology-writer/SKILL.md) and [The 12 Bhavas](../houses_bhavas/the_12_bhavas.md).
+An aspect (*Drishti* = "sight" or desire) defines how a planet projects its energy from its occupied house into other areas of life. Use alongside the [Astro Gatekeeper](../../astro-gatekeeper/SKILL.md) and [The 12 Bhavas](../houses_bhavas/the_12_bhavas.md).
 
 ---
 

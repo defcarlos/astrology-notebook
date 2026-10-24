@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:36:00Z
 
 # Hellenistic Places (Topoi): Diagnostic Card
 
-In Hellenistic astrology, houses are called *Places* (Topoi) utilizing Whole Sign Houses. Places measure the vantage point of the native's life and whether planets can "witness" the Ascendant. Use alongside [The 12 Bhavas](the_12_bhavas.md) and the [Astrology Writer](../../astrology-writer/SKILL.md).
+In Hellenistic astrology, houses are called *Places* (Topoi) utilizing Whole Sign Houses. Places measure the vantage point of the native's life and whether planets can "witness" the Ascendant. Use alongside [The 12 Bhavas](the_12_bhavas.md) and the [Astro Gatekeeper](../../astro-gatekeeper/SKILL.md).
 
 ---
 

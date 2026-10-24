@@ -8,7 +8,7 @@ timestamp: 2026-10-18T00:00:00Z
 
 # Nakshatra Architecture, Padas & Ganas: Diagnostic Card
 
-The 360° sidereal zodiac is divided into **27 Nakshatras** (Lunar Mansions) of $13^\circ 20'$ each, and each Nakshatra is subdivided into **4 Padas** (`P1, P2, P3, P4`) of $3^\circ 20'$ each ($27 \times 4 = 108$ total Padas). Use alongside the [27 Nakshatras Master Reference](nakshatras_reference.md) and [Astrology Writer](../../astrology-writer/SKILL.md).
+The 360° sidereal zodiac is divided into **27 Nakshatras** (Lunar Mansions) of $13^\circ 20'$ each, and each Nakshatra is subdivided into **4 Padas** (`P1, P2, P3, P4`) of $3^\circ 20'$ each ($27 \times 4 = 108$ total Padas). Use alongside the [27 Nakshatras Master Reference](nakshatras_reference.md) and [Astro Gatekeeper](../../astro-gatekeeper/SKILL.md).
 
 ---
 

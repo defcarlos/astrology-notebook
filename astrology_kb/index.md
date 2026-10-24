@@ -12,8 +12,7 @@ Welcome to the Master Knowledge Base. This directory contains foundational texts
 
 ## Directory Map
 
-* **[Astrology Writer](astrology-writer/SKILL.md)**: **Primary decoding engine** for LLMs to interpret chart summaries, Jaimini Karakas, Avasthas, SAV bindus, and Yogas.
-* **[Astrology Report Gatekeeper](astrology-report-gatekeeper/SKILL.md)**: In-memory evaluation and auto-correction gatekeeper that validates draft readings against context files before chat streaming.
+* **[Astro Gatekeeper](astro-gatekeeper/SKILL.md)**: **Unified primary decoding engine & verification supervisor** for LLMs to write 6-section natal readings, answer 4-pillar follow-up consultations, and audit/patch reports against context files.
 * **[Systems](systems/index.md)**: Overviews of macro-astrological frameworks (Vedic and Hellenistic).
 * **[Core Elements](core_elements/index.md)**: Foundational building blocks (Planets, Signs, Houses, Nakshatras).
 * **[Combinations & Rules](combinations_and_rules/index.md)**: Structural planetary combinations, including Yogas.

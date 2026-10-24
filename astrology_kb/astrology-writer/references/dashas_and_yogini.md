@@ -1,1 +1,0 @@
-../../predictive_and_timing/dashas_and_yogini.md

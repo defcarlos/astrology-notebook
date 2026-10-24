@@ -1,1 +1,0 @@
-../../core_elements/planets/planetary_friendships.md

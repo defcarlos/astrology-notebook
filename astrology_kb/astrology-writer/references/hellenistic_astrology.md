@@ -1,1 +1,0 @@
-../../systems/hellenistic_astrology.md

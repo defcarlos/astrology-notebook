@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:16:00Z
 
 # Planetary Dignity & Strength: Diagnostic Card
 
-A planet's capacity to deliver results depends on its **Dignity** (environmental comfort) and its **Shadbala** (raw kinetic strength). Use alongside the [Astrology Writer](../../astrology-writer/SKILL.md) and [Planetary Avasthas](planetary_avasthas.md).
+A planet's capacity to deliver results depends on its **Dignity** (environmental comfort) and its **Shadbala** (raw kinetic strength). Use alongside the [Astro Gatekeeper](../../astro-gatekeeper/SKILL.md) and [Planetary Avasthas](planetary_avasthas.md).
 
 ---
 

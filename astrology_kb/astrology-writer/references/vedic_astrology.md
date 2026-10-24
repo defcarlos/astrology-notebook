@@ -1,1 +1,0 @@
-../../systems/vedic_astrology.md

@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:18:00Z
 
 # Dasha Timing Systems: Diagnostic Card
 
-Vimshottari Dasha is the primary clock of karmic activation in Vedic astrology, sequencing the ripening of latent natal potentials across a 120-year cycle. Use alongside the [Astrology Writer](../astrology-writer/SKILL.md) and [Transits (Gochar)](transits_gochar.md).
+Vimshottari Dasha is the primary clock of karmic activation in Vedic astrology, sequencing the ripening of latent natal potentials across a 120-year cycle. Use alongside the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md) and [Transits (Gochar)](transits_gochar.md).
 
 ---
 
@@ -49,6 +49,6 @@ To diagnose the ease or friction of any sub-period, calculate the mutual house d
 ## 3. Transition Rules for Upcoming Sub-Periods (AD Shifts)
 
 When analyzing an upcoming Antardasha shift (e.g., from *Rahu-Saturn* to *Rahu-Mercury*):
-1. **Compare Dignity & Karaka:** Check the incoming lord's [Chara Karaka](../astrology-writer/SKILL.md) and [Dignity](../core_elements/planets/planetary_dignity.md). If the incoming planet is the **Atmakaraka** (e.g., when the incoming planet is the dynamic soul karaka), the new sub-period will force major soul realignment and personal reinvention.
+1. **Compare Dignity & Karaka:** Check the incoming lord's [Chara Karaka](../astro-gatekeeper/SKILL.md) and [Dignity](../core_elements/planets/planetary_dignity.md). If the incoming planet is the **Atmakaraka** (e.g., when the incoming planet is the dynamic soul karaka), the new sub-period will force major soul realignment and personal reinvention.
 2. **Examine Natal House Lordships:** The incoming lord activates the affairs of the houses it rules (e.g. an incoming lord ruling L10 and L1 brings public career and self-direction directly to the forefront).
 3. **Cross-Check with Transits:** Verify the incoming lord's current transit score in the [Ashtakavarga Matrix](ashtakavarga_siddhant.md). A score >28 guarantees a triumphant transition.

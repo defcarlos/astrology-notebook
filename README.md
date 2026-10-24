@@ -13,7 +13,7 @@ A comprehensive Python-based astrological calculation engine and AI interpretati
 * **Dual LLM Context Exporters**:
   * **SLM/LLM Markdown Context (`<name>_llm_context.md`, ~7 KB / ~1,800 tokens)**: Pre-synthesized, token-efficient Markdown telemetry containing core placements, lordships, 5-fold Avasthas, Jaimini Chara Karakas, active Yogas, high/low SAV houses, and active Dasha/Transit windows.
   * **Lean JSON Payload (`<name>_llm_payload.json`, ~13–18 KB)**: Trimmed from ~315 KB to ~3,500 tokens by retaining active yogas and current dasha chains while preserving sub-bala telemetry.
-* **Astrology Knowledge Base & Agent Skills (`astrology_kb/`)**: Includes **22 domain reference cards** and two production LLM skills (`astrology-writer` and `astrology-report-gatekeeper`) with one-command deployment to **Hermes Agent** via `scripts/sync_hermes.py`.
+* **Astrology Knowledge Base & Unified Agent Skill (`astrology_kb/`)**: Includes **22 domain reference cards** and the unified `astro-gatekeeper` production LLM skill (combining consultation writing, 4-pillar Q&A synthesis, and QA verification) with one-command deployment to **Hermes Agent** (`skills/` and `SOUL.md`) via `scripts/sync_hermes.py`.
 
 ---
 
@@ -41,8 +41,7 @@ astrology-notebook-master/
 │   ├── combinations_and_rules/  # Core Yogas, 300 Important Combinations, Ashtakavarga
 │   ├── predictive_timing/       # Vimshottari Dasha, Gochara Transits, Tajaka Varshaphala
 │   ├── systems/                 # Jaimini Sutras, Parashari vs. Jaimini, Prasna, Hellenistic, BaZi
-│   ├── astrology-writer/        # Skill: 7-step narrative chart synthesis & 4-pillar Q&A protocol
-│   └── astrology-report-gatekeeper/ # Skill: 10-point QA audit & verification checklist supervisor
+│   └── astro-gatekeeper/        # Unified Skill: 6-section chart writer, 4-pillar Q&A & QA gatekeeper
 ├── scripts/
 │   └── sync_hermes.py           # Synchronizes KB reference cards & deploys skills to Hermes Agent
 ├── tests/
@@ -122,37 +121,32 @@ Every run writes four synchronized files into `profiles/<safe_name>/`:
 
 ---
 
-## 🧠 Knowledge Base & LLM Agent Skills (`astrology_kb/`)
+## 🧠 Knowledge Base & Unified LLM Agent Skill (`astrology_kb/`)
 
-The `astrology_kb/` directory bridges deterministic astronomical telemetry with qualitative astrological interpretation. It consists of **22 structured reference cards** and **two specialized skills**:
+The `astrology_kb/` directory bridges deterministic astronomical telemetry with qualitative astrological interpretation. It consists of **22 structured reference cards** and the unified **`astro-gatekeeper`** skill:
 
-### 1. `astrology-writer` ([`astrology_kb/astrology-writer/SKILL.md`](astrology_kb/astrology-writer/SKILL.md))
-Transforms `<name>_llm_context.md` into an empowering, nuanced astrological reading without exposing raw mathematical jargon:
-* **Full Initial Readings**: Follows a 7-step interpretive protocol and outputs a 6-part narrative structure (*Core Architecture, Dynamic Life-Force & Avasthas, Yogas & Karmic Blueprint, Current Timing & Transits, Actionable Synthesis*).
-* **Strict Telemetry Ban**: Automatically translates raw degrees, Shadbala rupas, and SAV bindu counts into qualitative psychological and life-domain prose.
-* **4-Pillar Topic Synthesis Rule (Follow-Up Q&A)**: Whenever answering a question about a specific person or life domain (e.g., marriage, career, father, wealth, siblings), the skill synthesizes all 4 pillars before answering:
+### `astro-gatekeeper` ([`astrology_kb/astro-gatekeeper/SKILL.md`](astrology_kb/astro-gatekeeper/SKILL.md))
+Unifies natal chart report writing, follow-up consultation synthesis, and anti-hallucination quality verification into a single 3-mode agent playbook (and powers the Hermes `astro-gatekeeper` bot's `SOUL.md`):
+* **Mode 1 — Full Initial Readings (6-Section Report):** Follows the mandatory **4-Part Planet Formula** (`Placed In` house + `Rules` house(s) + `Dignity`/`Bala`/`Avasthas` + `Chara Karaka`) across 6 structured sections (*The Tripod of Life, Inner Drivers & Intellect, Wisdom/Growth & Values, Karma/Structure & Evolutionary Axis, Current Life Chapter, Closing & Exploration Hooks*).
+* **Mode 2 — Gatekeeper Audit & Delta Patch:** Runs a strict **4-Point Verification Checklist** over printed reports or follow-up answers against `<name>_llm_context.md`, outputting a **Gatekeeper Verification Checklist Badge** and immediately patching any factual errors or omitted house/lordship pillars under `### 🔧 Gatekeeper Corrections & Omissions Patch`.
+* **Mode 3 — 4-Pillar Topic Synthesis Rule (Follow-Up Q&A):** Whenever answering a question about a specific person or life domain (e.g., marriage, career, father, mother, wealth, siblings), the skill synthesizes all 4 pillars before answering:
   1. **Primary House(s) (*Bhava*)**: Occupants, aspects, and environmental SAV support (including dual-house rules such as **both the 9th and 10th houses for the Father**).
   2. **House Lord(s) (*Bhavesha*)**: Sign dignity, house placement (*Lordship Transfer*: `Lord of [Source] in [Destination]`), and Avastha state.
   3. **Natural Significator (*Naisargika Karaka*)**: Condition of the natural planetary significator (e.g., Sun for father, Moon for mother, Venus for spouse, Jupiter for wealth/children).
-  4. **Jaimini Significator (*Chara Karaka*)**: Condition and placement of the degree-based Jaimini Karaka (`AK`, `AmK`, `BK`, `MK`, `PiK`, `PK`, `GK`, `DK`).
+  4. **Jaimini Significator (*Chara Karaka*)**: Condition and placement of the degree-based Jaimini Karaka (`AK`, `AmK`, `BK`, `MK`, `PK`, `GK`, `DK`).
 
-### 2. `astrology-report-gatekeeper` ([`astrology_kb/astrology-report-gatekeeper/SKILL.md`](astrology_kb/astrology-report-gatekeeper/SKILL.md))
-Acts as a 10-point quality-assurance supervisor over generated readings:
-* Verifies 100% factual alignment against `<name>_llm_context.md` (Ascendant, placements, lordships, active Yogas, and Dasha/Transit dates).
-* Audits Avastha psychological synthesis (e.g., ensuring `High Drive / Lacks Resources` planets are framed as inner friction requiring pacing rather than effortless triumph).
-* Enforces the telemetry ban and 4-Pillar Topic Synthesis completeness, appending a **Verification Checklist Badge** once all 10 checks pass.
-
-### Syncing Skills to Hermes Agent (`scripts/sync_hermes.py`)
-If you use **Hermes Agent**, run the synchronization script whenever you edit a knowledge base card or skill file:
+### Syncing Skills & `SOUL.md` to Hermes Agent (`scripts/sync_hermes.py`)
+If you use **Hermes Agent**, run the synchronization script whenever you edit a knowledge base card or the unified skill file:
 
 ```bash
 python3 scripts/sync_hermes.py
 ```
 
 This script:
-1. Updates local relative symlinks inside `astrology_kb/astrology-writer/references/` and `astrology_kb/astrology-report-gatekeeper/references/`.
-2. Rewrites links for flat reference resolution and copies physical reference files into `~/.hermes/skills/astrology/` and all active Hermes profile skill directories (such as `~/.hermes/profiles/astro-gatekeeper/skills/astrology/`).
-3. Runs a runtime verification check against Hermes's `skill_view` loader.
+1. Updates local relative symlinks inside `astrology_kb/astro-gatekeeper/references/`.
+2. Rewrites links for flat reference resolution and copies physical reference files into `~/.hermes/skills/astrology/astro-gatekeeper/` and all active Hermes profile skill directories (pruning legacy `astrology-writer` and `astrology-report-gatekeeper` folders).
+3. Synchronizes `~/.hermes/profiles/astro-gatekeeper/SOUL.md` directly from the unified `astro-gatekeeper` skill definition.
+4. Runs a runtime verification check against Hermes's `skill_view` loader.
 
 #### Using the `astro-gatekeeper` Bot in Hermes
 With the unified `astro-gatekeeper` profile, you only need to provide the path to a generated `<name>_llm_context.md` file:

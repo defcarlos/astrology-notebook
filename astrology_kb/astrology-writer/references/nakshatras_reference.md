@@ -1,1 +1,0 @@
-../../core_elements/nakshatras/nakshatras_reference.md

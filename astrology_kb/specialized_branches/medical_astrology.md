@@ -8,7 +8,7 @@ timestamp: 2026-10-01T10:43:00Z
 
 # Medical Astrology: Diagnostic Card
 
-Medical astrology synthesizes Jyotish with Ayurveda to diagnose constitutional vulnerabilities and timing of physical ailments. Use alongside [The 12 Bhavas](../core_elements/houses_bhavas/the_12_bhavas.md) and the [Astrology Writer](../astrology-writer/SKILL.md).
+Medical astrology synthesizes Jyotish with Ayurveda to diagnose constitutional vulnerabilities and timing of physical ailments. Use alongside [The 12 Bhavas](../core_elements/houses_bhavas/the_12_bhavas.md) and the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md).
 
 ---
 

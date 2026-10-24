@@ -1,1 +1,0 @@
-../../skills/astrology_data_validator.md

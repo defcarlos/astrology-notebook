@@ -1,1 +1,0 @@
-../../specialized_branches/medical_astrology.md

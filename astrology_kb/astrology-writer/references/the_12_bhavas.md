@@ -1,1 +1,0 @@
-../../core_elements/houses_bhavas/the_12_bhavas.md

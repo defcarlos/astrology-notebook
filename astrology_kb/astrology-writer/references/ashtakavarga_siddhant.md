@@ -1,1 +1,0 @@
-../../predictive_and_timing/ashtakavarga_siddhant.md

@@ -1,1 +1,0 @@
-../../skills/astrology_test_suite.md

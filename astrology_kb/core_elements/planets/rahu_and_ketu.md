@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:34:00Z
 
 # Rahu & Ketu: Diagnostic Card
 
-Rahu and Ketu are *Chhaya Grahas* (shadow points)—astronomical intersection points of the Sun and Moon's orbits where eclipses occur. They represent the primary evolutionary axis of the chart. Use alongside the [Astrology Writer](../../astrology-writer/SKILL.md) and [Planetary Dignity](planetary_dignity.md).
+Rahu and Ketu are *Chhaya Grahas* (shadow points)—astronomical intersection points of the Sun and Moon's orbits where eclipses occur. They represent the primary evolutionary axis of the chart. Use alongside the [Astro Gatekeeper](../../astro-gatekeeper/SKILL.md) and [Planetary Dignity](planetary_dignity.md).
 
 ---
 

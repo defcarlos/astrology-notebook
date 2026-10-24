@@ -8,7 +8,7 @@ timestamp: 2026-10-18T00:00:00Z
 
 # 300 Important Combinations: Diagnostic Card
 
-Yogas synthesize inherited psychological patterns with material opportunities. Use this card with [Core Yogas](core_yogas.md) and the [Astrology Writer](../astrology-writer/SKILL.md).
+Yogas synthesize inherited psychological patterns with material opportunities. Use this card with [Core Yogas](core_yogas.md) and the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md).
 
 ---
 

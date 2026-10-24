@@ -1,1 +1,0 @@
-../../core_elements/vargas_divisional_charts.md

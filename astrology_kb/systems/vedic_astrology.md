@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:44:00Z
 
 # Vedic Astrology (Jyotish): Framework Card
 
-Jyotish ("The Science of Light") maps the ripening of personal *Karma* (action and reaction) across lifetimes. Reference alongside the [Astrology Writer](../astrology-writer/SKILL.md).
+Jyotish ("The Science of Light") maps the ripening of personal *Karma* (action and reaction) across lifetimes. Reference alongside the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md).
 
 ---
 

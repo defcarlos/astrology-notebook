@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:30:00Z
 
 # Transits (Gochar): Diagnostic Card
 
-While [Dasha Systems](dashas_and_yogini.md) reveal what karmic fruit is ripe, Transits (*Gochar*) act as the delivery trigger. Major events require agreement between the active Dasha lords and transiting planets. Use alongside the [Astrology Writer](../astrology-writer/SKILL.md).
+While [Dasha Systems](dashas_and_yogini.md) reveal what karmic fruit is ripe, Transits (*Gochar*) act as the delivery trigger. Major events require agreement between the active Dasha lords and transiting planets. Use alongside the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md).
 
 ---
 

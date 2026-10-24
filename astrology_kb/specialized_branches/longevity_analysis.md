@@ -8,7 +8,7 @@ timestamp: 2026-10-01T08:40:00Z
 
 # Longevity Analysis (Ayurdaya): Diagnostic Card
 
-Ayurdaya evaluates physical endurance and vital life span. Always cross-reference with [The 12 Bhavas](../core_elements/houses_bhavas/the_12_bhavas.md) and the [Astrology Writer](../astrology-writer/SKILL.md).
+Ayurdaya evaluates physical endurance and vital life span. Always cross-reference with [The 12 Bhavas](../core_elements/houses_bhavas/the_12_bhavas.md) and the [Astro Gatekeeper](../astro-gatekeeper/SKILL.md).
 
 ---
 

@@ -1,1 +1,0 @@
-../../mathematical_and_astronomy/mathematical_astrology.md
